@@ -188,13 +188,50 @@ export const EditorToolbar = ({ editor, onLinkClick }: EditorToolbarProps) => {
         </ToolbarGroup>
 
         <ToolbarGroup>
-          <ToolbarButton
-            onClick={() => editor.chain().focus().toggleHighlight().run()}
-            active={editor.isActive('highlight')}
-            title="高亮"
-          >
-            <Highlighter className="w-4 h-4" />
-          </ToolbarButton>
+          <Popover.Root>
+            <Popover.Trigger asChild>
+              <button
+                className={`p-2 rounded hover:bg-gray-100 transition-colors ${
+                  editor.isActive('highlight') ? 'bg-gray-100' : ''
+                }`}
+                title="背景色"
+              >
+                <Highlighter className="w-4 h-4" />
+              </button>
+            </Popover.Trigger>
+            <Popover.Portal>
+              <Popover.Content
+                className="bg-white rounded-lg shadow-lg p-2 w-[200px]"
+                sideOffset={5}
+              >
+                <div className="grid grid-cols-5 gap-1">
+                  {[
+                    '#ffeb3b', '#ffd700', '#ffa500', '#ff7f50', '#ff69b4',
+                    '#90ee90', '#98fb98', '#00fa9a', '#00ffff', '#87ceeb',
+                    '#e6e6fa', '#dda0dd', '#ee82ee', '#ff69b4', '#ffc0cb',
+                    '#f0e68c', '#deb887', '#d2b48c', '#bc8f8f', '#f5f5f5',
+                  ].map((color) => (
+                    <button
+                      key={color}
+                      className="w-6 h-6 rounded cursor-pointer border border-gray-200 hover:scale-110 transition-transform"
+                      style={{ backgroundColor: color }}
+                      onClick={() => {
+                        editor.chain().focus().toggleHighlight({ color }).run();
+                      }}
+                    />
+                  ))}
+                </div>
+                <button
+                  className="w-full mt-2 px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded"
+                  onClick={() => {
+                    editor.chain().focus().unsetHighlight().run();
+                  }}
+                >
+                  清除背景色
+                </button>
+              </Popover.Content>
+            </Popover.Portal>
+          </Popover.Root>
 
           <Popover.Root>
             <Popover.Trigger asChild>

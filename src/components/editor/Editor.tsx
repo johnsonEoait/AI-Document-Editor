@@ -2,7 +2,6 @@
 
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import Highlight from '@tiptap/extension-highlight';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
@@ -24,6 +23,7 @@ import { SlashCommands } from './SlashCommands';
 import { TableMenu } from './TableMenu';
 import { TableQuickButtons } from './TableQuickButtons';
 import { CustomImage } from './extensions/CustomImage';
+import { CustomHighlight } from './extensions/CustomHighlight';
 import { InlineLinkEditor } from './InlineLinkEditor';
 import { useState, useCallback } from 'react';
 
@@ -46,7 +46,7 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
           levels: [1, 2, 3],
         },
       }),
-      Highlight,
+      CustomHighlight,
       TextStyle,
       Color,
       Underline,

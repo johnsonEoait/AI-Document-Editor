@@ -21,6 +21,11 @@
   @apply outline-none;
   min-height: 500px;
 
+  mark {
+    background-color: var(--highlight-color, #ffd700);
+    color: inherit;
+  }
+
   table {
     border-collapse: collapse;
     margin: 1rem 0;
