@@ -157,8 +157,8 @@ export const BlockMenu = ({ editor }: BlockMenuProps) => {
                   hoveredBlockId === block.id || block.selected ? 'opacity-100' : 'opacity-0'
                 } group-hover:opacity-100`}
                 style={{
-                  top: '50%',
-                  transform: 'translateY(-50%)',
+                  top: '0',
+                  transform: 'none'
                 }}
                 onMouseDown={(e) => e.preventDefault()}
               >
