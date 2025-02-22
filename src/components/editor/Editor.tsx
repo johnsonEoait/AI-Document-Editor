@@ -4,7 +4,6 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Highlight from '@tiptap/extension-highlight';
 import Link from '@tiptap/extension-link';
-import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import TextStyle from '@tiptap/extension-text-style';
@@ -20,6 +19,7 @@ import { EditorToolbar } from './Toolbar';
 import { FloatingAIToolbar } from './FloatingAIToolbar';
 import { BlockMenu } from './BlockMenu';
 import { SlashCommands } from './SlashCommands';
+import { CustomImage } from './extensions/CustomImage';
 import { useState } from 'react';
 
 const lowlight = createLowlight(common);
@@ -63,10 +63,9 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
       Link.configure({
         openOnClick: false,
       }),
-      Image.configure({
-        HTMLAttributes: {
-          class: 'max-w-full h-auto rounded-lg',
-        },
+      CustomImage.configure({
+        inline: true,
+        allowBase64: true,
       }),
       Placeholder.configure({
         placeholder: ({ node }) => {
@@ -75,8 +74,6 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
           }
           return placeholder
         },
-        showOnlyWhenEmpty: true,
-        showOnlyCurrent: true,
       }),
       CodeBlockLowlight.configure({
         lowlight,
@@ -97,6 +94,7 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
     parseOptions: {
       preserveWhitespace: 'full',
     },
+    enableCoreExtensions: true,
   });
 
   if (!editor) {

@@ -92,7 +92,12 @@ export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
       reader.onload = (e) => {
         const result = e.target?.result as string;
         if (result) {
-          editor.chain().focus().setImage({ src: result }).run();
+          editor.chain()
+            .insertContent({
+              type: 'customImage',
+              attrs: { src: result }
+            })
+            .run();
         }
       };
       reader.readAsDataURL(file);
