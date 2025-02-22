@@ -139,22 +139,40 @@ export const CustomImage = Image.extend({
               case 'e':
               case 'w':
                 newWidth = position === 'e' ? startWidth + deltaX : startWidth - deltaX;
-                newHeight = newWidth / aspectRatio;
+                // 只在按住shift键时保持比例
+                if (moveEvent.shiftKey) {
+                  newHeight = newWidth / aspectRatio;
+                }
                 break;
               case 'n':
               case 's':
                 newHeight = position === 's' ? startHeight + deltaY : startHeight - deltaY;
-                newWidth = newHeight * aspectRatio;
+                // 只在按住shift键时保持比例
+                if (moveEvent.shiftKey) {
+                  newWidth = newHeight * aspectRatio;
+                }
                 break;
               case 'nw':
               case 'se':
                 newWidth = position === 'se' ? startWidth + deltaX : startWidth - deltaX;
-                newHeight = newWidth / aspectRatio;
+                if (moveEvent.shiftKey) {
+                  // 保持比例
+                  newHeight = newWidth / aspectRatio;
+                } else {
+                  // 自由调整高度
+                  newHeight = position === 'se' ? startHeight + deltaY : startHeight - deltaY;
+                }
                 break;
               case 'ne':
               case 'sw':
                 newWidth = position === 'ne' ? startWidth + deltaX : startWidth - deltaX;
-                newHeight = newWidth / aspectRatio;
+                if (moveEvent.shiftKey) {
+                  // 保持比例
+                  newHeight = newWidth / aspectRatio;
+                } else {
+                  // 自由调整高度
+                  newHeight = position === 'sw' ? startHeight + deltaY : startHeight - deltaY;
+                }
                 break;
             }
 
