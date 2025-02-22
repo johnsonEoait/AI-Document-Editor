@@ -24,7 +24,8 @@ import { SlashCommands } from './SlashCommands';
 import { TableMenu } from './TableMenu';
 import { TableQuickButtons } from './TableQuickButtons';
 import { CustomImage } from './extensions/CustomImage';
-import { useState } from 'react';
+import { InlineLinkEditor } from './InlineLinkEditor';
+import { useState, useCallback } from 'react';
 
 const lowlight = createLowlight(common);
 
@@ -36,6 +37,7 @@ interface EditorProps {
 
 export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来插入内容...' }: EditorProps) => {
   const [wordCount, setWordCount] = useState(0);
+  const [isLinkEditorOpen, setIsLinkEditorOpen] = useState(false);
 
   const editor = useEditor({
     extensions: [
@@ -74,7 +76,12 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
         },
       }),
       Link.configure({
-        openOnClick: false,
+        openOnClick: true,
+        HTMLAttributes: {
+          class: 'text-blue-600 hover:text-blue-800 underline',
+          target: '_blank',
+          rel: 'noopener noreferrer',
+        },
       }),
       CustomImage.configure({
         inline: true,
@@ -163,6 +170,18 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
     enableCoreExtensions: true,
   });
 
+  const handleLinkClick = useCallback(() => {
+    if (!editor) return;
+    
+    const { state } = editor;
+    const { selection } = state;
+    const hasSelection = !selection.empty;
+
+    if (hasSelection) {
+      setIsLinkEditorOpen(true);
+    }
+  }, [editor]);
+
   if (!editor) {
     return null;
   }
@@ -179,7 +198,7 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
               </button>
             </div>
             <div className="border-b">
-              <EditorToolbar editor={editor} />
+              <EditorToolbar editor={editor} onLinkClick={handleLinkClick} />
             </div>
           </div>
         </div>
@@ -193,7 +212,12 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
                 <EditorContent editor={editor} />
                 <TableMenu editor={editor} />
                 <TableQuickButtons editor={editor} />
-                <FloatingAIToolbar editor={editor} />
+                {!isLinkEditorOpen && <FloatingAIToolbar editor={editor} />}
+                <InlineLinkEditor
+                  editor={editor}
+                  isOpen={isLinkEditorOpen}
+                  onClose={() => setIsLinkEditorOpen(false)}
+                />
               </div>
             </div>
           </div>
