@@ -40,10 +40,20 @@ export const CustomImage = Image.extend({
     return ({ node, getPos, editor }) => {
       const container = document.createElement('div');
       container.classList.add('image-resizable-container');
+      container.style.display = 'inline-block';
+      container.style.position = 'relative';
+      container.style.lineHeight = '0';
+      container.style.margin = '0';
+      container.style.padding = '0';
+      container.style.fontSize = '0';
 
       const img = document.createElement('img');
       img.src = node.attrs.src;
       img.className = 'max-w-full h-auto rounded-lg';
+      img.style.display = 'block';
+      img.style.margin = '0';
+      img.style.padding = '0';
+      img.style.verticalAlign = 'top';
 
       if (node.attrs.width) {
         img.style.width = node.attrs.width + 'px';
@@ -62,6 +72,12 @@ export const CustomImage = Image.extend({
       // 添加选中效果
       const selectionFrame = document.createElement('div');
       selectionFrame.className = 'selection-frame';
+      selectionFrame.style.position = 'absolute';
+      selectionFrame.style.top = '0';
+      selectionFrame.style.left = '0';
+      selectionFrame.style.right = '0';
+      selectionFrame.style.bottom = '0';
+      selectionFrame.style.pointerEvents = 'none';
 
       // 更新选中状态
       const updateSelection = () => {
@@ -153,7 +169,7 @@ export const CustomImage = Image.extend({
             // 更新节点属性
             if (typeof getPos === 'function') {
               editor.chain()
-                .updateAttributes(this.name, {
+                .updateAttributes('customImage', {
                   width: Math.round(newWidth),
                   height: Math.round(newHeight),
                 })
