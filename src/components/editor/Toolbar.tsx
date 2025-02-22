@@ -23,12 +23,14 @@ import {
   RowsIcon,
   ColumnsIcon,
   Trash2,
+  Link2,
 } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
 import { useRef, useState } from 'react';
 
 interface EditorToolbarProps {
   editor: Editor;
+  onLinkClick?: () => void;
 }
 
 const TableSelector = ({ onSelect }: { onSelect: (rows: number, cols: number) => void }) => {
@@ -91,7 +93,7 @@ const TableSelector = ({ onSelect }: { onSelect: (rows: number, cols: number) =>
   );
 };
 
-export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
+export const EditorToolbar = ({ editor, onLinkClick }: EditorToolbarProps) => {
   if (!editor) {
     return null;
   }
@@ -302,11 +304,11 @@ export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
 
         <ToolbarGroup>
           <ToolbarButton
-            onClick={setLink}
+            onClick={onLinkClick}
             active={editor.isActive('link')}
             title="添加链接"
           >
-            <Link className="w-4 h-4" />
+            <Link2 className="w-4 h-4" />
           </ToolbarButton>
 
           <ToolbarButton
