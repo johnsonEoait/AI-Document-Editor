@@ -104,6 +104,12 @@
 
 .ProseMirror blockquote {
   @apply pl-4 border-l-4 border-gray-200 my-1;
+  quotes: none;
+}
+
+.ProseMirror blockquote::before,
+.ProseMirror blockquote::after {
+  content: none;
 }
 
 .ProseMirror blockquote p {
