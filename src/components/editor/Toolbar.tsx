@@ -22,7 +22,7 @@ import {
   Palette,
 } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 interface EditorToolbarProps {
   editor: Editor;
