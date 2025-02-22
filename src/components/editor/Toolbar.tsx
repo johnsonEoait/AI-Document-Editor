@@ -22,7 +22,7 @@ import {
   Palette,
 } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 interface EditorToolbarProps {
   editor: Editor;
@@ -93,11 +93,26 @@ export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
     return null;
   }
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const addImage = () => {
-    const url = window.prompt('输入图片 URL');
-    if (url) {
-      editor.chain().focus().setImage({ src: url }).run();
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        if (result) {
+          editor.chain().focus().setImage({ src: result }).run();
+        }
+      };
+      reader.readAsDataURL(file);
     }
+    // 清除选择的文件，这样相同的文件可以再次选择
+    event.target.value = '';
   };
 
   const setLink = () => {
@@ -120,6 +135,13 @@ export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
 
   return (
     <div className="border-b">
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        accept="image/*"
+        onChange={handleFileChange}
+      />
       <Toolbar.Root className="flex flex-wrap gap-0.5 p-2">
         <ToolbarGroup>
           <ToolbarButton

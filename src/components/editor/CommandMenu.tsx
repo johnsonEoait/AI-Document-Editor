@@ -32,6 +32,28 @@ interface CommandProps {
 
 const Command = ({ editor, range }: CommandProps) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        if (result) {
+          editor
+            .chain()
+            .focus()
+            .deleteRange(range)
+            .setImage({ src: result })
+            .run();
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+    // 清除选择的文件，这样相同的文件可以再次选择
+    event.target.value = '';
+  };
 
   const commandItems = [
     {
@@ -146,11 +168,8 @@ const Command = ({ editor, range }: CommandProps) => {
       title: '图片',
       description: '插入图片',
       icon: <Image className="w-5 h-5 text-blue-600" />,
-      command: ({ editor, range }) => {
-        const url = window.prompt('输入图片地址');
-        if (url) {
-          editor.chain().focus().deleteRange(range).setImage({ src: url }).run();
-        }
+      command: () => {
+        fileInputRef.current?.click();
       },
     },
     {
@@ -205,27 +224,36 @@ const Command = ({ editor, range }: CommandProps) => {
   }, [selectItem, selectedIndex, commandItems.length]);
 
   return (
-    <div className="relative overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
-      <div className="relative max-h-[330px] w-[320px] overflow-y-auto p-2 scroll-smooth">
-        {commandItems.map((item, index) => (
-          <button
-            key={index}
-            className={`flex w-full items-center space-x-3 rounded-md px-4 py-2 text-left text-sm transition-colors ${
-              index === selectedIndex ? 'bg-blue-50' : 'hover:bg-gray-50'
-            }`}
-            onClick={() => selectItem(index)}
-          >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white">
-              {item.icon}
-            </div>
-            <div>
-              <div className="font-medium text-gray-900">{item.title}</div>
-              <div className="text-xs text-gray-500">{item.description}</div>
-            </div>
-          </button>
-        ))}
+    <>
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        accept="image/*"
+        onChange={handleFileChange}
+      />
+      <div className="relative overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
+        <div className="relative max-h-[330px] w-[320px] overflow-y-auto p-2 scroll-smooth">
+          {commandItems.map((item, index) => (
+            <button
+              key={index}
+              className={`flex w-full items-center space-x-3 rounded-md px-4 py-2 text-left text-sm transition-colors ${
+                index === selectedIndex ? 'bg-blue-50' : 'hover:bg-gray-50'
+              }`}
+              onClick={() => selectItem(index)}
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-white">
+                {item.icon}
+              </div>
+              <div>
+                <div className="font-medium text-gray-900">{item.title}</div>
+                <div className="text-xs text-gray-500">{item.description}</div>
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

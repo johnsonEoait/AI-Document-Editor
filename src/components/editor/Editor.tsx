@@ -14,6 +14,7 @@ import Table from '@tiptap/extension-table';
 import TableRow from '@tiptap/extension-table-row';
 import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
+import Underline from '@tiptap/extension-underline';
 import { common, createLowlight } from 'lowlight';
 import { EditorToolbar } from './Toolbar';
 import { FloatingAIToolbar } from './FloatingAIToolbar';
@@ -42,6 +43,7 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
       Highlight,
       TextStyle,
       Color,
+      Underline,
       TextAlign.configure({
         types: ['heading', 'paragraph', 'table'],
       }),
