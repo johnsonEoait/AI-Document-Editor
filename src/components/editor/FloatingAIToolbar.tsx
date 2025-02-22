@@ -29,6 +29,13 @@ export const FloatingAIToolbar = ({ editor }: FloatingAIToolbarProps) => {
       return;
     }
 
+    // 检查选中的节点类型
+    const node = editor.state.doc.nodeAt(selection.from);
+    if (node && (node.type.name === 'customImage' || node.type.name === 'table')) {
+      setIsVisible(false);
+      return;
+    }
+
     // 获取选择范围的坐标
     const from = Math.min(...ranges.map((range) => range.$from.pos));
     const to = Math.max(...ranges.map((range) => range.$to.pos));
