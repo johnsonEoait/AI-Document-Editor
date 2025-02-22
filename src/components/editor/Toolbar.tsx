@@ -22,10 +22,57 @@ import {
   Palette,
 } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
+import { useState } from 'react';
 
 interface EditorToolbarProps {
   editor: Editor;
 }
+
+const TableSelector = ({ onSelect }: { onSelect: (rows: number, cols: number) => void }) => {
+  const [rows, setRows] = useState(3);
+  const [cols, setCols] = useState(3);
+  const [isSelecting, setIsSelecting] = useState(false);
+
+  return (
+    <div className="p-2">
+      <div className="mb-2">
+        <div className="grid grid-cols-8 gap-1">
+          {Array.from({ length: 8 * 8 }).map((_, i) => {
+            const row = Math.floor(i / 8);
+            const col = i % 8;
+            const isActive = row <= rows && col <= cols;
+            return (
+              <div
+                key={i}
+                className={`w-4 h-4 border ${
+                  isActive ? 'bg-blue-500 border-blue-600' : 'border-gray-200'
+                }`}
+                onMouseEnter={() => {
+                  if (isSelecting) {
+                    setRows(row);
+                    setCols(col);
+                  }
+                }}
+                onMouseDown={() => {
+                  setIsSelecting(true);
+                  setRows(row);
+                  setCols(col);
+                }}
+                onMouseUp={() => {
+                  setIsSelecting(false);
+                  onSelect(rows + 1, cols + 1);
+                }}
+              />
+            );
+          })}
+        </div>
+      </div>
+      <div className="text-sm text-gray-500 text-center">
+        {rows + 1} × {cols + 1} 表格
+      </div>
+    </div>
+  );
+};
 
 export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
   if (!editor) {
@@ -225,12 +272,30 @@ export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
             <Image className="w-4 h-4" />
           </ToolbarButton>
 
-          <ToolbarButton
-            onClick={addTable}
-            title="插入表格"
-          >
-            <Table className="w-4 h-4" />
-          </ToolbarButton>
+          <Popover.Root>
+            <Popover.Trigger asChild>
+              <button
+                className={`p-2 rounded hover:bg-gray-100 transition-colors ${
+                  editor.isActive('table') ? 'bg-gray-100' : ''
+                }`}
+                title="插入表格"
+              >
+                <Table className="w-4 h-4" />
+              </button>
+            </Popover.Trigger>
+            <Popover.Portal>
+              <Popover.Content
+                className="bg-white rounded-lg shadow-lg"
+                sideOffset={5}
+              >
+                <TableSelector
+                  onSelect={(rows, cols) => {
+                    editor.chain().focus().insertTable({ rows, cols }).run();
+                  }}
+                />
+              </Popover.Content>
+            </Popover.Portal>
+          </Popover.Root>
 
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleCode().run()}

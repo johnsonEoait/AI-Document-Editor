@@ -17,6 +17,7 @@ import TableHeader from '@tiptap/extension-table-header';
 import { common, createLowlight } from 'lowlight';
 import { EditorToolbar } from './Toolbar';
 import { FloatingAIToolbar } from './FloatingAIToolbar';
+import { BlockMenu } from './BlockMenu';
 import { SlashCommands } from './SlashCommands';
 import { useState } from 'react';
 
@@ -117,8 +118,20 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
           </div>
         </div>
         <div className="pt-[140px] pb-16 min-h-[calc(100vh-180px)] bg-white">
-          <EditorContent editor={editor} />
-          <FloatingAIToolbar editor={editor} />
+          <div className="relative flex px-8">
+            <div className="w-10 flex-shrink-0 relative">
+              <div className="sticky top-0">
+                <BlockMenu editor={editor} />
+              </div>
+            </div>
+            <div className="flex-1">
+              <EditorContent 
+                editor={editor} 
+                className="prose prose-sm sm:prose lg:prose-lg xl:prose-2xl focus:outline-none min-h-[500px]"
+              />
+              <FloatingAIToolbar editor={editor} />
+            </div>
+          </div>
         </div>
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t shadow-sm">
           <div className="max-w-5xl mx-auto">
