@@ -39,17 +39,27 @@ export const AIToolbar = ({ editor }: AIToolbarProps) => {
           });
 
           const data = await response.json();
+          
+          if (!response.ok) {
+            throw new Error(data.error || data.details || '未知错误');
+          }
+          
           if (data.text) {
             editor
               .chain()
               .focus()
-              .setTextSelection({ from: selection.from, to: selection.to })
-              .replaceSelection(data.text)
+              .deleteRange({
+                from: selection.from,
+                to: selection.to,
+              })
+              .insertContent(data.text)
               .run();
+          } else {
+            throw new Error('AI 返回的内容为空');
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error('AI 处理出错:', error);
-          alert('AI 处理出错，请稍后重试');
+          alert(error.message || 'AI 处理出错，请稍后重试');
         } finally {
           setIsLoading(false);
         }
@@ -81,17 +91,27 @@ export const AIToolbar = ({ editor }: AIToolbarProps) => {
           });
 
           const data = await response.json();
+          
+          if (!response.ok) {
+            throw new Error(data.error || data.details || '未知错误');
+          }
+          
           if (data.text) {
             editor
               .chain()
               .focus()
-              .setTextSelection({ from: selection.from, to: selection.to })
-              .replaceSelection(data.text)
+              .deleteRange({
+                from: selection.from,
+                to: selection.to,
+              })
+              .insertContent(data.text)
               .run();
+          } else {
+            throw new Error('AI 返回的内容为空');
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error('AI 处理出错:', error);
-          alert('AI 处理出错，请稍后重试');
+          alert(error.message || 'AI 处理出错，请稍后重试');
         } finally {
           setIsLoading(false);
         }
@@ -123,17 +143,27 @@ export const AIToolbar = ({ editor }: AIToolbarProps) => {
           });
 
           const data = await response.json();
+          
+          if (!response.ok) {
+            throw new Error(data.error || data.details || '未知错误');
+          }
+          
           if (data.text) {
             editor
               .chain()
               .focus()
-              .setTextSelection({ from: selection.from, to: selection.to })
-              .replaceSelection(data.text)
+              .deleteRange({
+                from: selection.from,
+                to: selection.to,
+              })
+              .insertContent(data.text)
               .run();
+          } else {
+            throw new Error('AI 返回的内容为空');
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error('AI 处理出错:', error);
-          alert('AI 处理出错，请稍后重试');
+          alert(error.message || 'AI 处理出错，请稍后重试');
         } finally {
           setIsLoading(false);
         }
