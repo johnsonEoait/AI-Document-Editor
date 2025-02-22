@@ -21,6 +21,7 @@ import {
   Highlighter,
   Palette,
 } from 'lucide-react';
+import * as Popover from '@radix-ui/react-popover';
 
 interface EditorToolbarProps {
   editor: Editor;
@@ -102,18 +103,50 @@ export const EditorToolbar = ({ editor }: EditorToolbarProps) => {
             <Highlighter className="w-4 h-4" />
           </ToolbarButton>
 
-          <ToolbarButton
-            onClick={() => {
-              const color = window.prompt('输入颜色（如 #FF0000）');
-              if (color) {
-                editor.chain().focus().setColor(color).run();
-              }
-            }}
-            active={editor.isActive('textStyle')}
-            title="文字颜色"
-          >
-            <Palette className="w-4 h-4" />
-          </ToolbarButton>
+          <Popover.Root>
+            <Popover.Trigger asChild>
+              <button
+                className={`p-2 rounded hover:bg-gray-100 transition-colors ${
+                  editor.isActive('textStyle') ? 'bg-gray-100' : ''
+                }`}
+                title="文字颜色"
+              >
+                <Palette className="w-4 h-4" />
+              </button>
+            </Popover.Trigger>
+            <Popover.Portal>
+              <Popover.Content
+                className="bg-white rounded-lg shadow-lg p-2 w-[200px]"
+                sideOffset={5}
+              >
+                <div className="grid grid-cols-5 gap-1">
+                  {[
+                    '#000000', '#434343', '#666666', '#999999', '#b7b7b7',
+                    '#ff1717', '#ff7e00', '#ffdd00', '#00ff00', '#007fff',
+                    '#0000ff', '#7337ee', '#ee37d4', '#ff69b4', '#8b4513',
+                    '#f44336', '#ff9800', '#ffc107', '#4caf50', '#2196f3',
+                  ].map((color) => (
+                    <button
+                      key={color}
+                      className="w-6 h-6 rounded-full cursor-pointer border border-gray-200 hover:scale-110 transition-transform"
+                      style={{ backgroundColor: color }}
+                      onClick={() => {
+                        editor.chain().focus().setColor(color).run();
+                      }}
+                    />
+                  ))}
+                </div>
+                <button
+                  className="w-full mt-2 px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded"
+                  onClick={() => {
+                    editor.chain().focus().unsetColor().run();
+                  }}
+                >
+                  清除颜色
+                </button>
+              </Popover.Content>
+            </Popover.Portal>
+          </Popover.Root>
         </ToolbarGroup>
 
         <ToolbarGroup>

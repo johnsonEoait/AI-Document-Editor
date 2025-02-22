@@ -1,16 +1,62 @@
 'use client';
 
 import { Editor } from '@tiptap/react';
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import { useState, useEffect, useCallback } from 'react';
 import { Wand2 } from 'lucide-react';
-import { useState } from 'react';
+import * as Popover from '@radix-ui/react-popover';
 
-interface AIToolbarProps {
+interface FloatingAIToolbarProps {
   editor: Editor;
 }
 
-export const AIToolbar = ({ editor }: AIToolbarProps) => {
+export const FloatingAIToolbar = ({ editor }: FloatingAIToolbarProps) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isLoading, setIsLoading] = useState(false);
+
+  const updatePosition = useCallback(() => {
+    if (!editor) return;
+
+    const { state } = editor;
+    const { selection } = state;
+    const { ranges } = selection;
+
+    // 检查是否有文本选择
+    const hasSelection = !selection.empty;
+
+    if (!hasSelection) {
+      setIsVisible(false);
+      return;
+    }
+
+    // 获取选择范围的坐标
+    const from = Math.min(...ranges.map((range) => range.$from.pos));
+    const to = Math.max(...ranges.map((range) => range.$to.pos));
+    
+    if (from === to) {
+      setIsVisible(false);
+      return;
+    }
+
+    const coords = editor.view.coordsAtPos(to);
+    
+    setPosition({
+      x: coords.left,
+      y: coords.bottom + 10,
+    });
+    setIsVisible(true);
+  }, [editor]);
+
+  useEffect(() => {
+    if (!editor) return;
+
+    // 监听选择变化
+    editor.on('selectionUpdate', updatePosition);
+    
+    return () => {
+      editor.off('selectionUpdate', updatePosition);
+    };
+  }, [editor, updatePosition]);
 
   const aiActions = [
     {
@@ -62,6 +108,7 @@ export const AIToolbar = ({ editor }: AIToolbarProps) => {
           alert(error.message || 'AI 处理出错，请稍后重试');
         } finally {
           setIsLoading(false);
+          setIsVisible(false);
         }
       },
     },
@@ -114,6 +161,7 @@ export const AIToolbar = ({ editor }: AIToolbarProps) => {
           alert(error.message || 'AI 处理出错，请稍后重试');
         } finally {
           setIsLoading(false);
+          setIsVisible(false);
         }
       },
     },
@@ -166,39 +214,37 @@ export const AIToolbar = ({ editor }: AIToolbarProps) => {
           alert(error.message || 'AI 处理出错，请稍后重试');
         } finally {
           setIsLoading(false);
+          setIsVisible(false);
         }
       },
     },
   ];
 
-  return (
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger
-        className={`p-2 rounded hover:bg-gray-200 transition-colors ${
-          isLoading ? 'opacity-50 cursor-not-allowed' : ''
-        }`}
-        disabled={isLoading}
-      >
-        <Wand2 className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-      </DropdownMenu.Trigger>
+  if (!isVisible) return null;
 
-      <DropdownMenu.Portal>
-        <DropdownMenu.Content
-          className="min-w-[220px] bg-white rounded-md shadow-lg p-1"
-          sideOffset={5}
-        >
+  return (
+    <div
+      className="fixed z-50"
+      style={{
+        left: position.x,
+        top: position.y,
+      }}
+    >
+      <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+        <div className="p-1">
           {aiActions.map((action, index) => (
-            <DropdownMenu.Item
+            <button
               key={index}
-              className="outline-none select-none rounded px-2 py-2 text-sm cursor-pointer hover:bg-gray-100"
+              className="w-full px-3 py-1.5 text-sm text-left hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               onClick={action.action}
               disabled={isLoading}
             >
+              <Wand2 className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
               {action.label}
-            </DropdownMenu.Item>
+            </button>
           ))}
-        </DropdownMenu.Content>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
+        </div>
+      </div>
+    </div>
   );
 }; 

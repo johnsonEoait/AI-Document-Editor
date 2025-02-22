@@ -28,7 +28,11 @@
 }
 
 .ProseMirror > * + * {
-  @apply mt-4;
+  @apply mt-1;
+}
+
+.ProseMirror p {
+  @apply my-1;
 }
 
 .ProseMirror img {
@@ -36,7 +40,11 @@
 }
 
 .ProseMirror blockquote {
-  @apply pl-4 border-l-4 border-gray-200 italic;
+  @apply pl-4 border-l-4 border-gray-200 my-1;
+}
+
+.ProseMirror blockquote p {
+  @apply m-0;
 }
 
 .ProseMirror pre {
@@ -52,20 +60,20 @@
 }
 
 .ProseMirror h1 {
-  @apply text-4xl font-bold mt-8 mb-4;
+  @apply text-4xl font-bold mt-4 mb-2;
 }
 
 .ProseMirror h2 {
-  @apply text-3xl font-bold mt-6 mb-4;
+  @apply text-3xl font-bold mt-3 mb-2;
 }
 
 .ProseMirror h3 {
-  @apply text-2xl font-bold mt-4 mb-3;
+  @apply text-2xl font-bold mt-2 mb-1;
 }
 
 .ProseMirror ul,
 .ProseMirror ol {
-  @apply pl-6;
+  @apply pl-6 my-1;
 }
 
 .ProseMirror ul {
@@ -74,6 +82,37 @@
 
 .ProseMirror ol {
   @apply list-decimal;
+}
+
+.ProseMirror table {
+  @apply border-collapse table-auto w-full my-4;
+}
+
+.ProseMirror table td,
+.ProseMirror table th {
+  @apply border border-gray-300 p-2 relative;
+  min-width: 1em;
+}
+
+.ProseMirror table th {
+  @apply font-bold bg-gray-50;
+}
+
+.ProseMirror table .selectedCell {
+  @apply relative;
+}
+
+.ProseMirror table .selectedCell:after {
+  @apply absolute inset-0 bg-blue-100/50 pointer-events-none;
+  content: '';
+}
+
+.ProseMirror table .column-resize-handle {
+  @apply absolute top-0 right-[-2px] bottom-[-2px] w-1 bg-blue-500 cursor-col-resize pointer-events-none;
+}
+
+.ProseMirror table p {
+  @apply m-0;
 }
 
 @layer base {

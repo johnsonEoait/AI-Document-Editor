@@ -7,9 +7,16 @@ import Link from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import TextStyle from '@tiptap/extension-text-style';
+import Color from '@tiptap/extension-color';
+import TextAlign from '@tiptap/extension-text-align';
+import Table from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableCell from '@tiptap/extension-table-cell';
+import TableHeader from '@tiptap/extension-table-header';
 import { common, createLowlight } from 'lowlight';
 import { EditorToolbar } from './Toolbar';
-import { AIToolbar } from './AIToolbar';
+import { FloatingAIToolbar } from './FloatingAIToolbar';
 import { SlashCommands } from './SlashCommands';
 import { useState } from 'react';
 
@@ -32,6 +39,24 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
         },
       }),
       Highlight,
+      TextStyle,
+      Color,
+      TextAlign.configure({
+        types: ['heading', 'paragraph', 'table'],
+      }),
+      Table.configure({
+        resizable: true,
+        HTMLAttributes: {
+          class: 'border-collapse table-auto w-full',
+        },
+      }),
+      TableRow,
+      TableHeader,
+      TableCell.configure({
+        HTMLAttributes: {
+          class: 'border border-gray-300 p-2',
+        },
+      }),
       Link.configure({
         openOnClick: false,
       }),
@@ -82,12 +107,9 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
           <div className="max-w-5xl mx-auto">
             <div className="flex items-center justify-between py-4 px-6">
               <h1 className="text-2xl font-bold text-gray-900">AI 文档编辑器</h1>
-              <div className="flex items-center gap-4">
-                <AIToolbar editor={editor} />
-                <button className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors">
-                  保存文档
-                </button>
-              </div>
+              <button className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors">
+                保存文档
+              </button>
             </div>
             <div className="border-b">
               <EditorToolbar editor={editor} />
@@ -96,6 +118,7 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
         </div>
         <div className="pt-[140px] pb-16 min-h-[calc(100vh-180px)] bg-white">
           <EditorContent editor={editor} />
+          <FloatingAIToolbar editor={editor} />
         </div>
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t shadow-sm">
           <div className="max-w-5xl mx-auto">
