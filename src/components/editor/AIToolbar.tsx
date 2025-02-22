@@ -2,7 +2,7 @@
 
 import { Editor } from '@tiptap/react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { MagicWandIcon } from '@radix-ui/react-icons';
+import { Wand2 } from 'lucide-react';
 import { useState } from 'react';
 
 interface AIToolbarProps {
@@ -149,7 +149,7 @@ export const AIToolbar = ({ editor }: AIToolbarProps) => {
         }`}
         disabled={isLoading}
       >
-        <MagicWandIcon className={`${isLoading ? 'animate-spin' : ''}`} />
+        <Wand2 className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
       </DropdownMenu.Trigger>
 
       <DropdownMenu.Portal>

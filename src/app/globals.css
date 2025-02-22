@@ -1,10 +1,85 @@
+@import 'tippy.js/dist/tippy.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
+  --foreground: #000000;
   --background: #ffffff;
-  --foreground: #171717;
+}
+
+.tippy-box {
+  @apply bg-white border border-gray-200 shadow-lg rounded-lg;
+}
+
+.tippy-content {
+  @apply p-0;
+}
+
+.ProseMirror {
+  @apply outline-none;
+  min-height: 500px;
+}
+
+.ProseMirror p.is-empty::before {
+  @apply text-gray-400 float-left h-0 pointer-events-none;
+  content: attr(data-placeholder);
+}
+
+.ProseMirror > * + * {
+  @apply mt-4;
+}
+
+.ProseMirror img {
+  @apply max-w-full h-auto rounded-lg;
+}
+
+.ProseMirror blockquote {
+  @apply pl-4 border-l-4 border-gray-200 italic;
+}
+
+.ProseMirror pre {
+  @apply bg-gray-900 text-white rounded-lg p-4 font-mono text-sm;
+}
+
+.ProseMirror pre code {
+  @apply bg-transparent text-inherit p-0 text-sm;
+}
+
+.ProseMirror code {
+  @apply bg-gray-100 rounded px-1.5 py-0.5 text-sm;
+}
+
+.ProseMirror h1 {
+  @apply text-4xl font-bold mt-8 mb-4;
+}
+
+.ProseMirror h2 {
+  @apply text-3xl font-bold mt-6 mb-4;
+}
+
+.ProseMirror h3 {
+  @apply text-2xl font-bold mt-4 mb-3;
+}
+
+.ProseMirror ul,
+.ProseMirror ol {
+  @apply pl-6;
+}
+
+.ProseMirror ul {
+  @apply list-disc;
+}
+
+.ProseMirror ol {
+  @apply list-decimal;
+}
+
+@layer base {
+  body {
+    @apply text-gray-900 bg-white;
+  }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -12,10 +87,4 @@
     --background: #0a0a0a;
     --foreground: #ededed;
   }
-}
-
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
 }
