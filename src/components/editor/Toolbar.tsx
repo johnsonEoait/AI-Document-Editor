@@ -29,14 +29,40 @@ interface EditorToolbarProps {
 }
 
 const TableSelector = ({ onSelect }: { onSelect: (rows: number, cols: number) => void }) => {
-  const [rows, setRows] = useState(3);
-  const [cols, setCols] = useState(3);
+  const [rows, setRows] = useState(0);
+  const [cols, setCols] = useState(0);
   const [isSelecting, setIsSelecting] = useState(false);
+
+  const handleMouseEnter = (row: number, col: number) => {
+    setRows(row);
+    setCols(col);
+  };
+
+  const handleMouseDown = (row: number, col: number) => {
+    setIsSelecting(true);
+    setRows(row);
+    setCols(col);
+  };
+
+  const handleMouseUp = () => {
+    if (isSelecting) {
+      setIsSelecting(false);
+      onSelect(rows + 1, cols + 1);
+    }
+  };
 
   return (
     <div className="p-2">
       <div className="mb-2">
-        <div className="grid grid-cols-8 gap-1">
+        <div 
+          className="grid grid-cols-8 gap-1"
+          onMouseLeave={() => {
+            if (!isSelecting) {
+              setRows(0);
+              setCols(0);
+            }
+          }}
+        >
           {Array.from({ length: 8 * 8 }).map((_, i) => {
             const row = Math.floor(i / 8);
             const col = i % 8;
@@ -44,31 +70,19 @@ const TableSelector = ({ onSelect }: { onSelect: (rows: number, cols: number) =>
             return (
               <div
                 key={i}
-                className={`w-4 h-4 border ${
+                className={`w-4 h-4 border transition-colors ${
                   isActive ? 'bg-blue-500 border-blue-600' : 'border-gray-200'
                 }`}
-                onMouseEnter={() => {
-                  if (isSelecting) {
-                    setRows(row);
-                    setCols(col);
-                  }
-                }}
-                onMouseDown={() => {
-                  setIsSelecting(true);
-                  setRows(row);
-                  setCols(col);
-                }}
-                onMouseUp={() => {
-                  setIsSelecting(false);
-                  onSelect(rows + 1, cols + 1);
-                }}
+                onMouseEnter={() => handleMouseEnter(row, col)}
+                onMouseDown={() => handleMouseDown(row, col)}
+                onMouseUp={handleMouseUp}
               />
             );
           })}
         </div>
       </div>
       <div className="text-sm text-gray-500 text-center">
-        {rows + 1} × {cols + 1} 表格
+        {rows > 0 || cols > 0 ? `${rows + 1} × ${cols + 1} 表格` : '拖动选择表格大小'}
       </div>
     </div>
   );

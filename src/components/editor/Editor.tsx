@@ -118,17 +118,12 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
           </div>
         </div>
         <div className="pt-[140px] pb-16 min-h-[calc(100vh-180px)] bg-white">
-          <div className="relative flex px-8">
+          <div className="relative flex">
             <div className="w-10 flex-shrink-0 relative">
-              <div className="sticky top-0">
-                <BlockMenu editor={editor} />
-              </div>
+              <BlockMenu editor={editor} />
             </div>
-            <div className="flex-1">
-              <EditorContent 
-                editor={editor} 
-                className="prose prose-sm sm:prose lg:prose-lg xl:prose-2xl focus:outline-none min-h-[500px]"
-              />
+            <div className="flex-1 px-8">
+              <EditorContent editor={editor} />
               <FloatingAIToolbar editor={editor} />
             </div>
           </div>
