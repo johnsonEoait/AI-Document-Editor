@@ -15,6 +15,8 @@ import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
 import Underline from '@tiptap/extension-underline';
 import { common, createLowlight } from 'lowlight';
+import { TextSelection } from 'prosemirror-state';
+import { Node as ProsemirrorNode } from 'prosemirror-model';
 import { EditorToolbar } from './Toolbar';
 import { FloatingAIToolbar } from './FloatingAIToolbar';
 import { BlockMenu } from './BlockMenu';
@@ -100,6 +102,59 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
     editorProps: {
       attributes: {
         class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl focus:outline-none min-h-[500px] px-8 py-6',
+      },
+      handleClick: (view, pos, event) => {
+        const { state } = view;
+        const { doc } = state;
+        
+        // 获取编辑器的DOM元素
+        const editorElement = view.dom as HTMLElement;
+        const editorRect = editorElement.getBoundingClientRect();
+        
+        // 获取点击的坐标
+        const mouseY = event.clientY;
+        
+        // 找到最后一个块级节点
+        let lastBlockNode: ProsemirrorNode | null = null;
+        let lastBlockPos = 0;
+        
+        doc.descendants((node, pos) => {
+          if (node.isBlock) {
+            lastBlockNode = node;
+            lastBlockPos = pos;
+          }
+        });
+        
+        if (!lastBlockNode) return false;
+        
+        // 获取最后一个块的DOM元素和位置
+        const lastBlockElement = view.nodeDOM(lastBlockPos) as HTMLElement;
+        if (!lastBlockElement) return false;
+        
+        const lastBlockRect = lastBlockElement.getBoundingClientRect();
+        
+        // 检查点击是否在最后一个块的下方
+        if (mouseY > lastBlockRect.bottom) {
+          // 检查最后一个节点是否为空段落
+          const isEmpty = lastBlockNode.type.name === 'paragraph' && lastBlockNode.content.size === 0;
+          
+          if (!isEmpty) {
+            // 在文档末尾插入新的空段落
+            const tr = view.state.tr.insert(
+              doc.content.size,
+              state.schema.nodes.paragraph.create()
+            );
+            
+            // 将光标移动到新段落
+            const newPos = doc.content.size;
+            tr.setSelection(TextSelection.create(tr.doc, newPos));
+            
+            view.dispatch(tr);
+            view.focus();
+            return true;
+          }
+        }
+        return false;
       },
     },
     parseOptions: {
