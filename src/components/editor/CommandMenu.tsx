@@ -43,9 +43,11 @@ const Command = ({ editor, range }: CommandProps) => {
         if (result) {
           editor
             .chain()
-            .focus()
             .deleteRange(range)
-            .setImage({ src: result })
+            .insertContent({
+              type: 'customImage',
+              attrs: { src: result }
+            })
             .run();
         }
       };
