@@ -77,25 +77,33 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="max-w-5xl mx-auto">
-        <div className="flex items-center justify-between py-4 px-6 border-b">
-          <h1 className="text-2xl font-bold text-gray-900">AI 文档编辑器</h1>
-          <div className="flex items-center gap-4">
-            <AIToolbar editor={editor} />
-            <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
-              保存文档
-            </button>
+      <div className="max-w-5xl mx-auto relative">
+        <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b shadow-sm">
+          <div className="max-w-5xl mx-auto">
+            <div className="flex items-center justify-between py-4 px-6">
+              <h1 className="text-2xl font-bold text-gray-900">AI 文档编辑器</h1>
+              <div className="flex items-center gap-4">
+                <AIToolbar editor={editor} />
+                <button className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors">
+                  保存文档
+                </button>
+              </div>
+            </div>
+            <div className="border-b">
+              <EditorToolbar editor={editor} />
+            </div>
           </div>
         </div>
-        <div className="border-b">
-          <EditorToolbar editor={editor} />
-        </div>
-        <div className="relative min-h-[500px] bg-white">
+        <div className="pt-[140px] pb-16 min-h-[calc(100vh-180px)] bg-white">
           <EditorContent editor={editor} />
         </div>
-        <div className="flex items-center justify-between px-6 py-3 border-t text-sm text-gray-500">
-          <div>字数统计：{wordCount}</div>
-          <div>最后保存时间：未保存</div>
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t shadow-sm">
+          <div className="max-w-5xl mx-auto">
+            <div className="flex items-center justify-between px-6 py-3 text-sm text-gray-500">
+              <div>字数统计：{wordCount}</div>
+              <div>最后保存时间：未保存</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
