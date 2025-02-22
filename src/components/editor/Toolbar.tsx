@@ -20,6 +20,9 @@ import {
   Underline,
   Highlighter,
   Palette,
+  RowsIcon,
+  ColumnsIcon,
+  Trash2,
 } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
 import { useRef, useState } from 'react';

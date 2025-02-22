@@ -20,6 +20,8 @@ import { EditorToolbar } from './Toolbar';
 import { FloatingAIToolbar } from './FloatingAIToolbar';
 import { BlockMenu } from './BlockMenu';
 import { SlashCommands } from './SlashCommands';
+import { TableMenu } from './TableMenu';
+import { TableQuickButtons } from './TableQuickButtons';
 import { useState } from 'react';
 
 const lowlight = createLowlight(common);
@@ -49,15 +51,24 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
       }),
       Table.configure({
         resizable: true,
+        allowTableNodeSelection: true,
         HTMLAttributes: {
-          class: 'border-collapse table-auto w-full',
+          class: 'border-collapse table-auto w-full relative',
         },
       }),
-      TableRow,
-      TableHeader,
+      TableRow.configure({
+        HTMLAttributes: {
+          class: 'group/row relative border-b border-gray-200',
+        },
+      }),
+      TableHeader.configure({
+        HTMLAttributes: {
+          class: 'border border-gray-300 p-2 bg-gray-50 font-bold group-hover/row:bg-gray-100/50 transition-colors',
+        },
+      }),
       TableCell.configure({
         HTMLAttributes: {
-          class: 'border border-gray-300 p-2',
+          class: 'border border-gray-300 p-2 relative group-hover/row:bg-gray-100/50 transition-colors',
         },
       }),
       Link.configure({
@@ -125,8 +136,12 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
               <BlockMenu editor={editor} />
             </div>
             <div className="flex-1 px-8">
-              <EditorContent editor={editor} />
-              <FloatingAIToolbar editor={editor} />
+              <div className="relative">
+                <EditorContent editor={editor} />
+                <TableMenu editor={editor} />
+                <TableQuickButtons editor={editor} />
+                <FloatingAIToolbar editor={editor} />
+              </div>
             </div>
           </div>
         </div>
