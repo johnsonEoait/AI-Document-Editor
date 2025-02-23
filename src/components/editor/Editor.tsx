@@ -24,6 +24,7 @@ import { TableMenu } from './TableMenu';
 import { TableQuickButtons } from './TableQuickButtons';
 import { CustomImage } from './extensions/CustomImage';
 import { CustomHighlight } from './extensions/CustomHighlight';
+import { FontSize } from './extensions/FontSize';
 import { InlineLinkEditor } from './InlineLinkEditor';
 import { useState, useCallback } from 'react';
 
@@ -49,6 +50,7 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
       CustomHighlight,
       TextStyle,
       Color,
+      FontSize,
       Underline,
       TextAlign.configure({
         types: ['heading', 'paragraph', 'table'],

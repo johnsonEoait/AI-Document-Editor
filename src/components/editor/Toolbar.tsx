@@ -26,10 +26,12 @@ import {
   Link2,
   Type,
   ChevronDown,
+  Text,
 } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useRef, useState } from 'react';
+import { FontSizeSelector } from './components/FontSizeSelector';
 
 type Level = 1 | 2 | 3 | 4 | 5 | 6;
 
@@ -191,6 +193,8 @@ export const EditorToolbar = ({ editor, onLinkClick }: EditorToolbarProps) => {
               </DropdownMenu.Content>
             </DropdownMenu.Portal>
           </DropdownMenu.Root>
+
+          <FontSizeSelector editor={editor} />
         </ToolbarGroup>
 
         <ToolbarGroup>
