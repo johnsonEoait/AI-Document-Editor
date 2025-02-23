@@ -22,6 +22,14 @@
   @apply outline-none;
   min-height: 500px;
 
+  .search-highlight {
+    background-color: rgba(255, 215, 0, 0.4);
+  }
+
+  .search-highlight-current {
+    background-color: rgba(255, 215, 0, 0.8);
+  }
+
   mark {
     background-color: var(--highlight-color, #ffd700);
     color: inherit;

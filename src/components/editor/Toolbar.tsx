@@ -35,6 +35,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useRef, useState } from 'react';
 import { FontSizeSelector } from './components/FontSizeSelector';
 import { Toast } from './components/Toast';
+import { FindReplace } from './components/FindReplace';
 
 type Level = 1 | 2 | 3 | 4 | 5 | 6;
 
@@ -492,6 +493,7 @@ export const EditorToolbar = ({ editor, onLinkClick, onSave }: EditorToolbarProp
           >
             <Save className="w-4 h-4" />
           </ToolbarButton>
+          <FindReplace editor={editor} />
         </ToolbarGroup>
       </Toolbar.Root>
     </div>
