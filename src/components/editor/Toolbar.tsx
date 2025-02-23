@@ -33,9 +33,9 @@ import {
 import * as Popover from '@radix-ui/react-popover';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useRef, useState } from 'react';
-import { FontSizeSelector } from './components/FontSizeSelector';
-import { Toast } from './components/Toast';
-import { FindReplace } from './components/FindReplace';
+import { FontSizeSelector } from './FontSizeSelector';
+import { Toast } from './Toast';
+import { FindReplace } from './FindReplace';
 
 type Level = 1 | 2 | 3 | 4 | 5 | 6;
 
