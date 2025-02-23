@@ -24,13 +24,18 @@ import {
   ColumnsIcon,
   Trash2,
   Link2,
+  Type,
+  ChevronDown,
 } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useRef, useState } from 'react';
+
+type Level = 1 | 2 | 3 | 4 | 5 | 6;
 
 interface EditorToolbarProps {
   editor: Editor;
-  onLinkClick?: () => void;
+  onLinkClick: () => void;
 }
 
 const TableSelector = ({ onSelect }: { onSelect: (rows: number, cols: number) => void }) => {
@@ -153,6 +158,41 @@ export const EditorToolbar = ({ editor, onLinkClick }: EditorToolbarProps) => {
         onChange={handleFileChange}
       />
       <Toolbar.Root className="flex flex-wrap gap-0.5 p-2">
+        <ToolbarGroup>
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild>
+              <button className="flex items-center gap-0.5 p-2 rounded hover:bg-gray-100 transition-colors">
+                <Type className="w-4 h-4" />
+                <ChevronDown className="w-3 h-3 opacity-50" />
+              </button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content 
+                className="bg-white rounded-lg shadow-lg py-1.5 min-w-[180px] border border-gray-200"
+                sideOffset={5}
+              >
+                {[1, 2, 3, 4, 5, 6].map((level) => (
+                  <DropdownMenu.Item
+                    key={level}
+                    className="flex items-center px-3 py-1.5 text-sm hover:bg-gray-50 cursor-pointer outline-none"
+                    onClick={() => editor.chain().focus().toggleHeading({ level: level as Level }).run()}
+                  >
+                    <span 
+                      className={`${editor.isActive('heading', { level: level as Level }) ? 'font-medium text-blue-600' : ''}`}
+                      style={{ 
+                        fontSize: `${level === 1 ? '1.1em' : level === 2 ? '1.05em' : '1em'}`,
+                        fontWeight: level <= 2 ? 500 : 400
+                      }}
+                    >
+                      标题 {level}
+                    </span>
+                  </DropdownMenu.Item>
+                ))}
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
+        </ToolbarGroup>
+
         <ToolbarGroup>
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBold().run()}
