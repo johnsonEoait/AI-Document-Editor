@@ -36,15 +36,7 @@ export const FontSizeSelector = ({ editor }: FontSizeSelectorProps) => {
         const sizeItem = fontSizes.find(item => item.size === currentSize);
         if (sizeItem) {
           setSelectedSize(sizeItem.label);
-        } else {
-          // 如果没有找到完全匹配的字号，设置为默认的三号
-          setSelectedSize('三号');
-          editor.chain().focus().setFontSize('16px').run();
         }
-      } else {
-        // 如果没有字号设置，设置为默认的三号
-        setSelectedSize('三号');
-        editor.chain().focus().setFontSize('16px').run();
       }
     };
 

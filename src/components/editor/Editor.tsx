@@ -68,10 +68,13 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
   // 从本地存储加载内容
   const loadSavedContent = (): SavedContent | null => {
     try {
-      const savedData = localStorage.getItem('editor-content');
-      if (savedData) {
-        const parsed = JSON.parse(savedData) as SavedContent;
-        return parsed;
+      // 检查 localStorage 是否可用
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const savedData = localStorage.getItem('editor-content');
+        if (savedData) {
+          const parsed = JSON.parse(savedData) as SavedContent;
+          return parsed;
+        }
       }
     } catch (error) {
       console.error('加载保存的内容失败:', error);

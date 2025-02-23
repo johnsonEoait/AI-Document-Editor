@@ -161,13 +161,18 @@ export const EditorToolbar = ({ editor, onLinkClick, onSave }: EditorToolbarProp
       // 获取编辑器的内容
       const content = editor.getJSON();
       
-      // 将内容保存到 localStorage
-      localStorage.setItem('editor-content', JSON.stringify({
-        content,
-        lastSaved: new Date().toISOString()
-      }));
-      
-      setToast({ message: '文档已保存到本地', type: 'success' });
+      // 检查 localStorage 是否可用
+      if (typeof window !== 'undefined' && window.localStorage) {
+        // 将内容保存到 localStorage
+        localStorage.setItem('editor-content', JSON.stringify({
+          content,
+          lastSaved: new Date().toISOString()
+        }));
+        
+        setToast({ message: '文档已保存到本地', type: 'success' });
+      } else {
+        setToast({ message: '本地存储不可用', type: 'error' });
+      }
     } catch (error) {
       console.error('保存失败:', error);
       setToast({ message: '保存失败，请重试', type: 'error' });
@@ -281,9 +286,9 @@ export const EditorToolbar = ({ editor, onLinkClick, onSave }: EditorToolbarProp
               >
                 <div className="grid grid-cols-5 gap-1">
                   {[
-                    '#ffeb3b', '#ffd700', '#ffa500', '#ff7f50', '#ff69b4',
+                    '#ffeb3b', '#ffd700', '#ffa500', '#ff7f50', '#ff1493',
                     '#90ee90', '#98fb98', '#00fa9a', '#00ffff', '#87ceeb',
-                    '#e6e6fa', '#dda0dd', '#ee82ee', '#ff69b4', '#ffc0cb',
+                    '#e6e6fa', '#dda0dd', '#ee82ee', '#da70d6', '#ffc0cb',
                     '#f0e68c', '#deb887', '#d2b48c', '#bc8f8f', '#f5f5f5',
                   ].map((color) => (
                     <button
@@ -328,7 +333,7 @@ export const EditorToolbar = ({ editor, onLinkClick, onSave }: EditorToolbarProp
                   {[
                     '#000000', '#434343', '#666666', '#999999', '#b7b7b7',
                     '#ff1717', '#ff7e00', '#ffdd00', '#00ff00', '#007fff',
-                    '#0000ff', '#7337ee', '#ee37d4', '#ff69b4', '#8b4513',
+                    '#0000ff', '#7337ee', '#ee37d4', '#c71585', '#8b4513',
                     '#f44336', '#ff9800', '#ffc107', '#4caf50', '#2196f3',
                   ].map((color) => (
                     <button
@@ -448,7 +453,16 @@ export const EditorToolbar = ({ editor, onLinkClick, onSave }: EditorToolbarProp
               >
                 <TableSelector
                   onSelect={(rows, cols) => {
-                    editor.chain().focus().insertTable({ rows, cols }).run();
+                    editor
+                      .chain()
+                      .focus()
+                      .deleteRange(editor.state.selection)
+                      .insertTable({ 
+                        rows,
+                        cols,
+                        withHeaderRow: true 
+                      })
+                      .run();
                   }}
                 />
               </Popover.Content>
