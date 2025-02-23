@@ -188,6 +188,20 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
       attributes: {
         class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl focus:outline-none min-h-[500px] px-8 py-6',
       },
+      handleKeyDown: (view, event) => {
+        // 检查是否按下了 Ctrl+F
+        if (event.ctrlKey && event.key === 'f') {
+          // 阻止浏览器默认的查找行为
+          event.preventDefault();
+          // 触发查找替换按钮的点击事件
+          const findReplaceButton = document.querySelector('[title="查找和替换"]') as HTMLButtonElement;
+          if (findReplaceButton) {
+            findReplaceButton.click();
+            return true;
+          }
+        }
+        return false;
+      },
       handleClick: (view, pos, event) => {
         const { state } = view;
         const { doc } = state;

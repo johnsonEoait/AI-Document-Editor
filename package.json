@@ -57,12 +57,12 @@
     "react-dom": "^19.0.0",
     "react-hot-toast": "^2.5.2",
     "tailwind-merge": "^3.0.2",
-    "tippy.js": "^6.3.7"
-  },
+      "tippy.js": "^6.3.7"
+    },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/typography": "^0.5.16",
-    "@types/html-to-docx": "^1.8.0",
+    "@types/html-to-docx": "^1.8.0",  
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
