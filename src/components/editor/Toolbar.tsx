@@ -166,6 +166,7 @@ export const EditorToolbar = ({ editor, onLinkClick, onSave }: EditorToolbarProp
         // 将内容保存到 localStorage
         localStorage.setItem('editor-content', JSON.stringify({
           content,
+          title: editor.getText().split('\n')[0] || '未命名文档', // 使用第一行文本作为标题
           lastSaved: new Date().toISOString()
         }));
         

@@ -97,11 +97,11 @@
 }
 
 .ProseMirror > * + * {
-  @apply mt-1;
+  @apply mt-4;
 }
 
 .ProseMirror p {
-  @apply my-2 leading-none;
+  @apply my-4 leading-none;
 }
 
 .ProseMirror img {

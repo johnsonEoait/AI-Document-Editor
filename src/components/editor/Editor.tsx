@@ -49,6 +49,7 @@ interface TextRunWithSize extends TextRun {
 interface SavedContent {
   content: JSONContent;
   lastSaved: string;
+  title: string;
 }
 
 interface EditorProps {
@@ -64,25 +65,31 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [dialogPosition, setDialogPosition] = useState<{ x: number; y: number } | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [title, setTitle] = useState<string>('未命名文档');
 
   // 从本地存储加载内容
-  const loadSavedContent = (): SavedContent | null => {
+  const loadSavedContent = useCallback((): SavedContent | null => {
     try {
       // 检查 localStorage 是否可用
       if (typeof window !== 'undefined' && window.localStorage) {
         const savedData = localStorage.getItem('editor-content');
         if (savedData) {
-          const parsed = JSON.parse(savedData) as SavedContent;
-          return parsed;
+          return JSON.parse(savedData) as SavedContent;
         }
       }
     } catch (error) {
       console.error('加载保存的内容失败:', error);
     }
     return null;
-  };
+  }, []);
 
-  const savedData = loadSavedContent();
+  // 使用 useEffect 来加载保存的内容
+  useEffect(() => {
+    const savedData = loadSavedContent();
+    if (savedData?.title) {
+      setTitle(savedData.title);
+    }
+  }, [loadSavedContent]);
 
   // 创建防抖的自动保存函数
   const debouncedAutoSave = useCallback(
@@ -93,6 +100,7 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
         const content = editor.getJSON();
         localStorage.setItem('editor-content', JSON.stringify({
           content,
+          title,
           lastSaved: new Date().toISOString()
         }));
         setLastSaveTime(new Date().toLocaleTimeString());
@@ -107,7 +115,7 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
         setToast({ message: '自动保存失败', type: 'error' });
       }
     }, 2000), // 2秒的防抖延迟
-    []
+    [title] // 添加 title 作为依赖
   );
 
   const editor = useEditor({
@@ -172,7 +180,7 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
       }),
       SlashCommands,
     ],
-    content: savedData?.content || content,
+    content: loadSavedContent()?.content || content,
     onUpdate: ({ editor }) => {
       onChange?.(editor.getHTML());
       const text = editor.state.doc.textContent;
@@ -247,24 +255,27 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
 
   // 设置最后保存时间
   useEffect(() => {
-    if (savedData?.lastSaved) {
-      const date = new Date(savedData.lastSaved);
+    if (loadSavedContent()?.lastSaved) {
+      const date = new Date(loadSavedContent()!.lastSaved);
       setLastSaveTime(date.toLocaleTimeString());
     }
-  }, []);
+  }, [loadSavedContent]);
 
   const handleSave = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     if (!editor) return;
     const buttonRect = event.currentTarget.getBoundingClientRect();
     setDialogPosition({
-      x: buttonRect.right + 8, // 在按钮右边留8px的间距
-      y: buttonRect.top - 8 // 稍微向上偏移8px
+      x: buttonRect.right + 8,
+      y: buttonRect.top - 8
     });
     setIsConfirmDialogOpen(true);
   }, [editor]);
 
   const handleConfirmSave = useCallback(() => {
     if (!editor) return;
+    
+    // 处理文档标题
+    const documentTitle = title.trim() || '未命名文档';
     
     // 解析编辑器内容
     const processNode = (node: any): Paragraph[] => {
@@ -406,7 +417,8 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `document-${new Date().toISOString().slice(0,10)}.docx`;
+      // 使用文档标题作为文件名
+      a.download = `${documentTitle}.docx`;
       
       // 触发下载
       document.body.appendChild(a);
@@ -420,7 +432,7 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
       setLastSaveTime(new Date().toLocaleTimeString());
       setIsConfirmDialogOpen(false);
     });
-  }, [editor]);
+  }, [editor, title]);
 
   const handleLinkClick = useCallback(() => {
     if (!editor) return;
@@ -459,7 +471,18 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
         <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b shadow-sm">
           <div className="max-w-5xl mx-auto">
             <div className="flex items-center justify-between py-4 px-6">
-              <h1 className="text-2xl font-bold text-gray-900">AI 文档编辑器</h1>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  if (editor) {
+                    debouncedAutoSave(editor);
+                  }
+                }}
+                className="text-2xl font-bold text-gray-900 bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-2 py-1"
+                placeholder="输入文档标题"
+              />
             </div>
             <div className="border-b">
               <EditorToolbar 
