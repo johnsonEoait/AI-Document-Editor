@@ -28,10 +28,8 @@ import { FontSize } from './extensions/FontSize';
 import { InlineLinkEditor } from './InlineLinkEditor';
 import { useState, useCallback, useEffect } from 'react';
 import { ConfirmDialog } from './ConfirmDialog';
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, convertInchesToTwip, ShadingType } from 'docx';
-import mammoth from 'mammoth';
-import debounce from 'lodash/debounce';
 import htmlDocx from 'html-docx-js/dist/html-docx';
+import debounce from 'lodash/debounce';
 
 const lowlight = createLowlight(common);
 
@@ -41,7 +39,6 @@ interface TextRunWithSize extends TextRun {
 
 interface SavedContent {
   content: JSONContent;
-  html: string;
   lastSaved: string;
   title: string;
 }
@@ -92,10 +89,8 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
       
       try {
         const content = editor.getJSON();
-        const html = editor.getHTML();
         localStorage.setItem('editor-content', JSON.stringify({
           content,
-          html,
           title,
           lastSaved: new Date().toISOString()
         }));
@@ -111,7 +106,7 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
         setToast({ message: '自动保存失败', type: 'error' });
       }
     }, 2000), // 2秒的防抖延迟
-    [title]
+    [title] // 添加 title 作为依赖
   );
 
   const editor = useEditor({
@@ -176,7 +171,7 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
       }),
       SlashCommands,
     ],
-    content: loadSavedContent()?.html || content,
+    content: loadSavedContent()?.content || content,
     onUpdate: ({ editor }) => {
       onChange?.(editor.getHTML());
       const text = editor.state.doc.textContent;
@@ -274,65 +269,82 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
     const documentTitle = title.trim() || '未命名文档';
     
     // 获取编辑器的HTML内容
-    const html = editor.getHTML();
+    const content = editor.getHTML();
     
-    // 创建一个包含完整HTML文档的字符串
-    const fullHtml = `
+    // 添加基本样式
+    const htmlContent = `
       <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <title>${documentTitle}</title>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; margin: 2cm; }
-            table { border-collapse: collapse; width: 100%; margin: 1em 0; }
-            th, td { border: 1px solid #ddd; padding: 8px; }
-            th { background-color: #f5f5f5; }
-            h1 { font-size: 24pt; margin-top: 1em; margin-bottom: 0.5em; }
-            h2 { font-size: 18pt; margin-top: 1em; margin-bottom: 0.5em; }
-            h3 { font-size: 14pt; margin-top: 1em; margin-bottom: 0.5em; }
-            p { margin: 1em 0; }
-            .text-left { text-align: left; }
-            .text-center { text-align: center; }
-            .text-right { text-align: right; }
-            .text-justify { text-align: justify; }
-            img { max-width: 100%; height: auto; }
-            a { color: #0066cc; text-decoration: underline; }
-            blockquote { border-left: 3px solid #ddd; margin: 1em 0; padding-left: 1em; }
-            code { background: #f5f5f5; padding: 0.2em 0.4em; border-radius: 3px; }
-          </style>
-        </head>
-        <body>
-          ${html}
-        </body>
+      <html lang="zh">
+      <head>
+        <meta charset="UTF-8">
+        <title>${documentTitle}</title>
+        <style>
+          body {
+            font-family: "Microsoft YaHei", sans-serif;
+            line-height: 1.6;
+            margin: 1in;
+          }
+          table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 1em 0;
+          }
+          th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+          }
+          th {
+            background-color: #f5f5f5;
+          }
+          img {
+            max-width: 100%;
+            height: auto;
+          }
+          blockquote {
+            border-left: 4px solid #ddd;
+            margin: 1em 0;
+            padding-left: 1em;
+            color: #666;
+          }
+          pre {
+            background-color: #f5f5f5;
+            padding: 1em;
+            border-radius: 4px;
+            overflow-x: auto;
+          }
+          code {
+            background-color: #f5f5f5;
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+          }
+        </style>
+      </head>
+      <body>
+        ${content}
+      </body>
       </html>
     `;
 
-    try {
-      // 使用 html-docx-js 将 HTML 转换为 docx
-      const converted = htmlDocx.asBlob(fullHtml);
-      
-      // 创建下载链接
-      const url = URL.createObjectURL(converted);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${documentTitle}.docx`;
-      
-      // 触发下载
-      document.body.appendChild(a);
-      a.click();
-      
-      // 清理
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      // 更新保存时间
-      setLastSaveTime(new Date().toLocaleTimeString());
-      setIsConfirmDialogOpen(false);
-    } catch (error) {
-      console.error('导出文档失败:', error);
-      setToast({ message: '导出失败，请重试', type: 'error' });
-    }
+    // 转换为Word文档
+    const docx = htmlDocx.asBlob(htmlContent);
+    
+    // 创建下载链接
+    const url = window.URL.createObjectURL(docx);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${documentTitle}.docx`;
+    
+    // 触发下载
+    document.body.appendChild(a);
+    a.click();
+    
+    // 清理
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    // 更新保存时间
+    setLastSaveTime(new Date().toLocaleTimeString());
+    setIsConfirmDialogOpen(false);
   }, [editor, title]);
 
   const handleLinkClick = useCallback(() => {
