@@ -1,10 +1,5 @@
 import type { Metadata } from "next";
-import { GeistSans } from 'geist/font/sans';
-import { GeistMono } from 'geist/font/mono';
 import "./globals.css";
-
-const geistSans = GeistSans;
-const geistMono = GeistMono;
 
 export const metadata: Metadata = {
   title: "Open Source AI Editor",
@@ -18,9 +13,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.className} ${geistMono.className} antialiased`}
-      >
+      <body className="antialiased">
         {children}
       </body>
     </html>
