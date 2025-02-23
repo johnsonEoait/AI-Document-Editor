@@ -1,0 +1,133 @@
+/* 编辑器基础样式 */
+.editor-container {
+  position: relative;
+  overflow: visible;
+}
+
+/* 块级句柄样式 */
+.block-handle {
+  position: absolute;
+  z-index: 50;
+  pointer-events: auto;
+  user-select: none;
+  will-change: transform, opacity;
+}
+
+.block-handle:hover {
+  opacity: 1 !important;
+}
+
+/* Markdown 表格样式 */
+.ProseMirror table {
+  border-collapse: collapse;
+  margin: 1em 0;
+  width: 100%;
+  font-family: monospace;
+  font-size: 0.9em;
+  line-height: 1.5;
+  transition: background-color 0.2s ease;
+  position: relative;
+  min-height: 1.5em;
+}
+
+.ProseMirror th,
+.ProseMirror td {
+  border: 1px solid #ddd;
+  padding: 8px 13px;
+  text-align: left;
+  transition: background-color 0.2s ease;
+}
+
+.ProseMirror th {
+  font-weight: 600;
+  background-color: #edf2f7;
+  color: #1a202c;
+}
+
+.ProseMirror tr {
+  transition: background-color 0.2s ease;
+}
+
+.ProseMirror tr:nth-child(2n) {
+  background-color: #f8fafc;
+}
+
+.ProseMirror tr:hover {
+  background-color: #f3f4f6;
+}
+
+/* 为所有块级元素添加悬停效果 */
+.ProseMirror p:hover,
+.ProseMirror h1:hover,
+.ProseMirror h2:hover,
+.ProseMirror h3:hover,
+.ProseMirror ul:hover,
+.ProseMirror ol:hover,
+.ProseMirror blockquote:hover,
+.ProseMirror pre:hover,
+.ProseMirror table:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+  border-radius: 4px;
+}
+
+/* 块级元素的过渡效果 */
+.ProseMirror p,
+.ProseMirror h1,
+.ProseMirror h2,
+.ProseMirror h3,
+.ProseMirror ul,
+.ProseMirror ol,
+.ProseMirror blockquote,
+.ProseMirror pre,
+.ProseMirror table {
+  transition: background-color 0.2s ease;
+  padding: 4px 0;
+  margin: 0;
+  min-height: 1.5em;
+  position: relative;
+}
+
+/* 确保句柄在编辑器内部正确定位 */
+.ProseMirror {
+  position: relative;
+}
+
+/* 添加动画效果 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.block-handle {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.table-context-menu {
+  user-select: none;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.table-context-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.table-context-menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.table-context-menu::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.table-context-menu::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 0, 0, 0.3);
+} 

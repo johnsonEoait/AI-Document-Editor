@@ -15,13 +15,14 @@ import TableHeader from '@tiptap/extension-table-header';
 import Underline from '@tiptap/extension-underline';
 import { common, createLowlight } from 'lowlight';
 import { TextSelection } from 'prosemirror-state';
-import { Node as ProsemirrorNode } from 'prosemirror-model';
+import { Node as ProsemirrorNode } from '@tiptap/pm/model';
 import { JSONContent } from '@tiptap/react';
+import { Markdown } from 'tiptap-markdown';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
 import { EditorToolbar } from './Toolbar';
 import { FloatingAIToolbar } from './FloatingAIToolbar';
 import { SlashCommands } from './SlashCommands';
-import { TableMenu } from './TableMenu';
-import { TableQuickButtons } from './TableQuickButtons';
 import { CustomImage } from './CustomImage';
 import { CustomHighlight } from './CustomHighlight';
 import { FontSize } from './FontSize';
@@ -30,6 +31,9 @@ import { useState, useCallback, useEffect } from 'react';
 import { ConfirmDialog } from './ConfirmDialog';
 import htmlDocx from 'html-docx-js/dist/html-docx';
 import debounce from 'lodash/debounce';
+import { BlockHandle } from './extensions/BlockHandle';
+import { TableMenu } from './TableMenu';
+import './styles/editor.css';
 
 const lowlight = createLowlight(common);
 
@@ -119,6 +123,52 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
         heading: {
           levels: [1, 2, 3],
         },
+        bulletList: {
+          HTMLAttributes: {
+            class: 'list-disc list-outside ml-4',
+          },
+        },
+        orderedList: {
+          HTMLAttributes: {
+            class: 'list-decimal list-outside ml-4',
+          },
+        },
+      }),
+      BlockHandle,
+      Markdown.configure({
+        transformPastedText: true,
+        transformCopiedText: true,
+        html: false,
+        breaks: true,
+      }),
+      Table.configure({
+        HTMLAttributes: {
+          class: 'markdown-table',
+        },
+        resizable: false,
+        handleWidth: 0,
+        cellMinWidth: 100,
+        lastColumnResizable: false,
+        allowTableNodeSelection: false,
+      }),
+      TableRow.configure({
+        HTMLAttributes: {
+          class: '',
+        },
+      }),
+      TableHeader.configure({
+        HTMLAttributes: {
+          class: '',
+        },
+      }),
+      TableCell.configure({
+        HTMLAttributes: {
+          class: '',
+        },
+      }),
+      TaskList,
+      TaskItem.configure({
+        nested: true,
       }),
       CustomHighlight,
       TextStyle,
@@ -127,28 +177,6 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
       Underline,
       TextAlign.configure({
         types: ['heading', 'paragraph', 'table'],
-      }),
-      Table.configure({
-        resizable: true,
-        allowTableNodeSelection: true,
-        HTMLAttributes: {
-          class: 'border-collapse table-auto w-full relative',
-        },
-      }),
-      TableRow.configure({
-        HTMLAttributes: {
-          class: 'group/row relative border-b border-gray-200',
-        },
-      }),
-      TableHeader.configure({
-        HTMLAttributes: {
-          class: 'border border-gray-300 p-2 bg-gray-50 font-bold group-hover/row:bg-gray-100/50 transition-colors',
-        },
-      }),
-      TableCell.configure({
-        HTMLAttributes: {
-          class: 'border border-gray-300 p-2 relative group-hover/row:bg-gray-100/50 transition-colors',
-        },
       }),
       Link.configure({
         openOnClick: true,
@@ -177,7 +205,8 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
     ],
     content: loadSavedContent()?.content || content,
     onUpdate: ({ editor }) => {
-      onChange?.(editor.getHTML());
+      const markdown = editor.storage.markdown.getMarkdown();
+      onChange?.(markdown);
       const text = editor.state.doc.textContent;
       setWordCount(text.length);
       
@@ -186,7 +215,7 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl focus:outline-none min-h-[500px] px-8 py-6',
+        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl focus:outline-none min-h-[500px] px-8 py-6 markdown-body',
       },
       handleKeyDown: (view, event) => {
         // 检查是否按下了 Ctrl+F
@@ -213,46 +242,59 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
         // 获取点击的坐标
         const mouseY = event.clientY;
         
-        // 找到最后一个块级节点
-        let lastBlockNode: ProsemirrorNode | null = null;
-        let lastBlockPos = 0;
+        // 找到点击位置最近的节点
+        let clickedNode = null;
+        let clickedPos = -1;
         
-        doc.descendants((node: ProsemirrorNode, pos) => {
+        doc.nodesBetween(0, doc.content.size, (node, pos) => {
           if (node.isBlock) {
-            lastBlockNode = node;
-            lastBlockPos = pos;
+            const dom = view.nodeDOM(pos) as HTMLElement;
+            if (dom) {
+              const rect = dom.getBoundingClientRect();
+              if (mouseY >= rect.top && mouseY <= rect.bottom + 20) { // 添加一些额外的点击区域
+                clickedNode = node;
+                clickedPos = pos;
+                return false; // 停止遍历
+              }
+            }
           }
+          return true;
         });
         
-        if (!lastBlockNode) return false;
-        
-        // 获取最后一个块的DOM元素和位置
-        const lastBlockElement = view.nodeDOM(lastBlockPos) as HTMLElement;
-        if (!lastBlockElement) return false;
-        
-        const lastBlockRect = lastBlockElement.getBoundingClientRect();
-        
-        // 检查点击是否在最后一个块的下方
-        if (mouseY > lastBlockRect.bottom) {
-          // 检查最后一个节点是否为空段落
-          const isEmpty = lastBlockNode.type.name === 'paragraph' && lastBlockNode.content.size === 0;
-          
-          if (!isEmpty) {
-            // 在文档末尾插入新的空段落
-            const tr = view.state.tr.insert(
-              doc.content.size,
-              state.schema.nodes.paragraph.create()
-            );
+        // 如果点击位置在最后一个块的下方
+        if (!clickedNode) {
+          const lastChild = doc.lastChild;
+          if (lastChild) {
+            const lastPos = doc.content.size - lastChild.nodeSize;
+            const lastDom = view.nodeDOM(lastPos) as HTMLElement;
             
-            // 将光标移动到新段落
-            const newPos = doc.content.size;
-            tr.setSelection(TextSelection.create(tr.doc, newPos));
-            
-            view.dispatch(tr);
-            view.focus();
-            return true;
+            if (lastDom) {
+              const lastRect = lastDom.getBoundingClientRect();
+              
+              if (mouseY > lastRect.bottom) {
+                // 检查最后一个节点是否为空段落
+                const isEmptyParagraph = lastChild.type.name === 'paragraph' && lastChild.content.size === 0;
+                
+                if (!isEmptyParagraph) {
+                  // 在文档末尾插入新的空段落
+                  const tr = view.state.tr.insert(
+                    doc.content.size,
+                    state.schema.nodes.paragraph.create()
+                  );
+                  
+                  // 将光标移动到新段落
+                  const newPos = doc.content.size;
+                  tr.setSelection(TextSelection.create(tr.doc, newPos));
+                  
+                  view.dispatch(tr);
+                  view.focus();
+                  return true;
+                }
+              }
+            }
           }
         }
+        
         return false;
       },
     },
@@ -420,7 +462,7 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
         onCancel={() => setIsConfirmDialogOpen(false)}
         position={dialogPosition ?? undefined}
       />
-      <div className="max-w-5xl mx-auto relative">
+      <div className="max-w-5xl mx-auto relative editor-container">
         <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b shadow-sm">
           <div className="max-w-5xl mx-auto">
             <div className="flex items-center justify-between py-4 px-6">
@@ -448,16 +490,18 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
         </div>
         <div className="pt-[140px] pb-16 min-h-[calc(100vh-180px)] bg-white">
           <div className="relative">
-            <div className="relative">
-              <EditorContent editor={editor} />
-              <TableMenu editor={editor} />
-              <TableQuickButtons editor={editor} />
+            <div className="relative pl-[60px]">
+              <EditorContent 
+                editor={editor}
+                className="editor-content relative"
+              />
               {!isLinkEditorOpen && <FloatingAIToolbar editor={editor} />}
               <InlineLinkEditor
                 editor={editor}
                 isOpen={isLinkEditorOpen}
                 onClose={() => setIsLinkEditorOpen(false)}
               />
+              <TableMenu editor={editor} />
             </div>
           </div>
         </div>
