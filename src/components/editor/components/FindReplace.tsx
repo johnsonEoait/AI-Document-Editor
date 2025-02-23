@@ -248,49 +248,47 @@ export const FindReplace = ({ editor }: FindReplaceProps) => {
             );
           }}
         >
-          <div className="space-y-4">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <div className="text-sm font-medium text-gray-700">查找</div>
-                <div className="text-sm text-gray-500 ml-auto">
-                  {matches.length > 0 ? `${currentMatch + 1}/${matches.length}` : '无匹配'}
-                </div>
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <div className="text-sm font-medium text-gray-900">查找</div>
+              <div className="text-sm text-gray-500 ml-auto">
+                {matches.length > 0 ? `${currentMatch + 1}/${matches.length}` : '无匹配'}
               </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={findText}
-                  onChange={(e) => setFindText(e.target.value)}
-                  placeholder="输入要查找的文本..."
-                  className="flex-1 px-3 py-1.5 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
-                />
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => navigateMatch('prev')}
-                    disabled={matches.length === 0}
-                    className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:hover:bg-transparent"
-                    title="上一个"
-                  >
-                    <svg className="w-4 h-4 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M15 18l-6-6 6-6" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => navigateMatch('next')}
-                    disabled={matches.length === 0}
-                    className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:hover:bg-transparent"
-                    title="下一个"
-                  >
-                    <svg className="w-4 h-4 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M9 18l6-6-6-6" />
-                    </svg>
-                  </button>
-                </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={findText}
+                onChange={(e) => setFindText(e.target.value)}
+                placeholder="输入要查找的文本..."
+                className="flex-1 px-3 py-1.5 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-gray-500 text-base"
+              />
+              <div className="flex gap-1">
+                <button
+                  onClick={() => navigateMatch('prev')}
+                  disabled={matches.length === 0}
+                  className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:hover:bg-transparent"
+                  title="上一个"
+                >
+                  <svg className="w-4 h-4 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M15 18l-6-6 6-6" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => navigateMatch('next')}
+                  disabled={matches.length === 0}
+                  className="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:hover:bg-transparent"
+                  title="下一个"
+                >
+                  <svg className="w-4 h-4 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                </button>
               </div>
             </div>
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <div className="text-sm font-medium text-gray-700">替换</div>
+              <div className="flex items-center gap-2 mb-1 mt-3">
+                <div className="text-sm font-medium text-gray-900">替换</div>
               </div>
               <div className="flex items-center gap-2">
                 <input
@@ -298,21 +296,21 @@ export const FindReplace = ({ editor }: FindReplaceProps) => {
                   value={replaceText}
                   onChange={(e) => setReplaceText(e.target.value)}
                   placeholder="输入要替换的文本..."
-                  className="flex-1 px-3 py-1.5 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
+                  className="flex-1 px-3 py-1.5 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-gray-500 text-base"
                 />
               </div>
               <div className="flex gap-2 mt-2">
                 <button
                   onClick={replaceMatch}
                   disabled={currentMatch === -1}
-                  className="flex-1 px-3 py-1.5 text-sm font-medium rounded bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50 disabled:hover:bg-blue-500"
+                  className="flex-1 px-3 py-1.5 text-sm font-medium rounded bg-black text-white cursor-pointer hover:bg-white hover:text-black border border-black transition-colors" 
                 >
                   替换当前
                 </button>
                 <button
                   onClick={replaceAll}
                   disabled={matches.length === 0}
-                  className="flex-1 px-3 py-1.5 text-sm font-medium rounded bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50 disabled:hover:bg-blue-500"
+                  className="flex-1 px-3 py-1.5 text-sm font-medium rounded bg-black text-white cursor-pointer hover:bg-white hover:text-black border border-black transition-colors"
                 >
                   全部替换
                 </button>

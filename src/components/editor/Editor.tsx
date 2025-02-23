@@ -393,13 +393,13 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
       {toast && (
         <div
           className={`fixed top-4 right-4 px-3 py-2 rounded-md shadow-lg z-[9999] ${
-            toast.type === 'success' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+            toast.type === 'success' ? 'bg-black text-white' : 'bg-white text-black'
           } flex items-center space-x-2 transition-all duration-300 transform translate-y-0 opacity-100 text-sm border ${
-            toast.type === 'success' ? 'border-green-200' : 'border-red-200'
+            toast.type === 'success' ? 'border-gray-700' : 'border-gray-200'
           }`}
           style={{
             animation: 'slideIn 0.3s ease-out',
-            boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.03)'
+            boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.06)'
           }}
         >
           {toast.type === 'success' ? (

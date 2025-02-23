@@ -34,13 +34,13 @@ export const ConfirmDialog = ({ isOpen, onConfirm, onCancel, position }: Confirm
       <div className="flex justify-end gap-2">
         <button
           onClick={onCancel}
-          className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
+          className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded transition-colors"
         >
           取消
         </button>
         <button
           onClick={onConfirm}
-          className="px-3 py-1.5 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded transition-colors"
+          className="px-3 py-1.5 text-sm text-white bg-black hover:bg-gray-900 rounded transition-colors"
         >
           确定
         </button>
