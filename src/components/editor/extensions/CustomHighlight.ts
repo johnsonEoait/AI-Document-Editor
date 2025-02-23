@@ -16,66 +16,53 @@ export const CustomHighlight = Extension.create({
 
   addOptions() {
     return {
+      multicolor: true,
       HTMLAttributes: {},
     };
   },
 
-  addAttributes() {
-    return {
-      color: {
-        default: null,
-        parseHTML: element => {
-          return element.style.backgroundColor;
-        },
-        renderHTML: attributes => {
-          if (!attributes.color) {
-            return {};
-          }
-
-          return {
-            style: `background-color: ${attributes.color}`,
-          };
-        },
-      },
-    };
-  },
-
-  parseHTML() {
+  addGlobalAttributes() {
     return [
       {
-        tag: 'mark',
-        getAttrs: element => {
-          if (typeof element === 'string') {
-            return false;
-          }
-          return {
-            color: element.style.backgroundColor,
-          };
+        types: ['textStyle'],
+        attributes: {
+          backgroundColor: {
+            default: null,
+            parseHTML: element => element.style.backgroundColor,
+            renderHTML: attributes => {
+              if (!attributes.backgroundColor) {
+                return {};
+              }
+              return {
+                style: `background-color: ${attributes.backgroundColor}`,
+              };
+            },
+          },
         },
       },
     ];
-  },
-
-  renderHTML({ HTMLAttributes }) {
-    return ['mark', HTMLAttributes, 0];
   },
 
   addCommands() {
     return {
       setHighlight:
         attributes =>
-        ({ commands }) => {
-          return commands.setMark(this.name, attributes);
+        ({ chain }) => {
+          return chain().setMark('textStyle', { backgroundColor: attributes.color }).run();
         },
       unsetHighlight:
         () =>
-        ({ commands }) => {
-          return commands.unsetMark(this.name);
+        ({ chain }) => {
+          return chain().setMark('textStyle', { backgroundColor: null }).run();
         },
       toggleHighlight:
         attributes =>
         ({ commands }) => {
-          return commands.toggleMark(this.name, attributes);
+          const { backgroundColor } = this.editor.getAttributes('textStyle');
+          if (backgroundColor === attributes.color) {
+            return commands.unsetHighlight();
+          }
+          return commands.setHighlight(attributes);
         },
     };
   },
