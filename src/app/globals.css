@@ -101,7 +101,7 @@
 }
 
 .ProseMirror p {
-  @apply my-1;
+  @apply my-2 leading-none;
 }
 
 .ProseMirror img {
