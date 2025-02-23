@@ -48,7 +48,7 @@
   @apply p-0;
 }
 
-.ProseMirror {
+/* .ProseMirror {
   @apply outline-none;
   min-height: 500px;
 
@@ -195,7 +195,7 @@
 
 .ProseMirror ol {
   @apply list-decimal;
-}
+} */
 
 @layer base {
   body {

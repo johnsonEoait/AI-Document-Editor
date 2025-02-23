@@ -1,7 +1,7 @@
 'use client';
 
 import { Editor } from '@tiptap/react';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Wand2 } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
 
@@ -13,13 +13,19 @@ export const FloatingAIToolbar = ({ editor }: FloatingAIToolbarProps) => {
   const [isVisible, setIsVisible] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isLoading, setIsLoading] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout>();
 
-  const updatePosition = useCallback(() => {
+  const checkSelectionAndUpdatePosition = useCallback(() => {
     if (!editor) return;
 
     const { state } = editor;
     const { selection } = state;
     const { ranges } = selection;
+
+    // 清除之前的定时器
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
 
     // 检查是否有文本选择
     const hasSelection = !selection.empty;
@@ -47,23 +53,55 @@ export const FloatingAIToolbar = ({ editor }: FloatingAIToolbarProps) => {
 
     const coords = editor.view.coordsAtPos(to);
     
+    // 设置位置
     setPosition({
       x: coords.left,
       y: coords.bottom + 10,
     });
-    setIsVisible(true);
+
+    // 延迟200ms后显示工具栏
+    timeoutRef.current = setTimeout(() => {
+      setIsVisible(true);
+    }, 200);
   }, [editor]);
+
+  // 处理鼠标松开事件
+  const handleMouseUp = useCallback(() => {
+    checkSelectionAndUpdatePosition();
+  }, [checkSelectionAndUpdatePosition]);
 
   useEffect(() => {
     if (!editor) return;
 
-    // 监听选择变化
-    editor.on('selectionUpdate', updatePosition);
+    // 获取编辑器的 DOM 元素
+    const editorElement = editor.view.dom;
+
+    // 监听鼠标松开事件
+    editorElement.addEventListener('mouseup', handleMouseUp);
     
     return () => {
-      editor.off('selectionUpdate', updatePosition);
+      editorElement.removeEventListener('mouseup', handleMouseUp);
+      // 清理定时器
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
     };
-  }, [editor, updatePosition]);
+  }, [editor, handleMouseUp]);
+
+  // 在选择变化时隐藏工具栏
+  useEffect(() => {
+    if (!editor) return;
+
+    const handleSelectionUpdate = () => {
+      setIsVisible(false);
+    };
+
+    editor.on('selectionUpdate', handleSelectionUpdate);
+    
+    return () => {
+      editor.off('selectionUpdate', handleSelectionUpdate);
+    };
+  }, [editor]);
 
   const aiActions = [
     {
