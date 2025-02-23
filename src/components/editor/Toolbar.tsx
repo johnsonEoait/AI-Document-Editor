@@ -27,17 +27,21 @@ import {
   Type,
   ChevronDown,
   Text,
+  FileDown,
+  Save,
 } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useRef, useState } from 'react';
 import { FontSizeSelector } from './components/FontSizeSelector';
+import { Toast } from './components/Toast';
 
 type Level = 1 | 2 | 3 | 4 | 5 | 6;
 
 interface EditorToolbarProps {
   editor: Editor;
   onLinkClick: () => void;
+  onSave: (event: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
 const TableSelector = ({ onSelect }: { onSelect: (rows: number, cols: number) => void }) => {
@@ -100,7 +104,9 @@ const TableSelector = ({ onSelect }: { onSelect: (rows: number, cols: number) =>
   );
 };
 
-export const EditorToolbar = ({ editor, onLinkClick }: EditorToolbarProps) => {
+export const EditorToolbar = ({ editor, onLinkClick, onSave }: EditorToolbarProps) => {
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
   if (!editor) {
     return null;
   }
@@ -150,6 +156,24 @@ export const EditorToolbar = ({ editor, onLinkClick }: EditorToolbarProps) => {
     editor.chain().focus().insertTable({ rows: 3, cols: 3 }).run();
   };
 
+  const handleSave = async () => {
+    try {
+      // 获取编辑器的内容
+      const content = editor.getJSON();
+      
+      // 将内容保存到 localStorage
+      localStorage.setItem('editor-content', JSON.stringify({
+        content,
+        lastSaved: new Date().toISOString()
+      }));
+      
+      setToast({ message: '文档已保存到本地', type: 'success' });
+    } catch (error) {
+      console.error('保存失败:', error);
+      setToast({ message: '保存失败，请重试', type: 'error' });
+    }
+  };
+
   return (
     <div className="border-b">
       <input
@@ -159,6 +183,13 @@ export const EditorToolbar = ({ editor, onLinkClick }: EditorToolbarProps) => {
         accept="image/*"
         onChange={handleFileChange}
       />
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
       <Toolbar.Root className="flex flex-wrap gap-0.5 p-2">
         <ToolbarGroup>
           <DropdownMenu.Root>
@@ -432,29 +463,44 @@ export const EditorToolbar = ({ editor, onLinkClick }: EditorToolbarProps) => {
             <Code className="w-4 h-4" />
           </ToolbarButton>
         </ToolbarGroup>
+
+        <ToolbarGroup>
+          <ToolbarButton
+            onClick={(e) => onSave(e)}
+            title="导出文档"
+          >
+            <FileDown className="w-4 h-4" />
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={handleSave}
+            title="保存文档"
+          >
+            <Save className="w-4 h-4" />
+          </ToolbarButton>
+        </ToolbarGroup>
       </Toolbar.Root>
     </div>
   );
 };
 
 interface ToolbarButtonProps {
-  onClick: () => void;
-  children: React.ReactNode;
+  onClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
   active?: boolean;
   title?: string;
+  children: React.ReactNode;
 }
 
-const ToolbarButton = ({ onClick, children, active, title }: ToolbarButtonProps) => {
+const ToolbarButton = ({ onClick, active, title, children }: ToolbarButtonProps) => {
   return (
-    <Toolbar.Button
+    <button
+      onClick={onClick}
       className={`p-2 rounded hover:bg-gray-100 transition-colors ${
         active ? 'bg-gray-100' : ''
       }`}
-      onClick={onClick}
       title={title}
     >
       {children}
-    </Toolbar.Button>
+    </button>
   );
 };
 
