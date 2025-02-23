@@ -33,10 +33,6 @@ import debounce from 'lodash/debounce';
 
 const lowlight = createLowlight(common);
 
-interface TextRunWithSize extends TextRun {
-  size?: number;
-}
-
 interface SavedContent {
   content: JSONContent;
   lastSaved: string;
@@ -82,31 +78,39 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
     }
   }, [loadSavedContent]);
 
+  // 创建通用的保存函数
+  const saveContent = useCallback((editor: ReturnType<typeof useEditor>, isAuto = false) => {
+    if (!editor) return;
+    
+    try {
+      const content = editor.getJSON();
+      localStorage.setItem('editor-content', JSON.stringify({
+        content,
+        title,
+        lastSaved: new Date().toISOString()
+      }));
+      setLastSaveTime(new Date().toLocaleTimeString());
+      setToast({ 
+        message: isAuto ? '已自动保存' : '文档已保存', 
+        type: 'success' 
+      });
+      
+      // 3秒后清除提示
+      setTimeout(() => {
+        setToast(null);
+      }, 3000);
+    } catch (error) {
+      console.error('保存失败:', error);
+      setToast({ message: '保存失败，请重试', type: 'error' });
+    }
+  }, [title]);
+
   // 创建防抖的自动保存函数
   const debouncedAutoSave = useCallback(
     debounce((editor: ReturnType<typeof useEditor>) => {
-      if (!editor) return;
-      
-      try {
-        const content = editor.getJSON();
-        localStorage.setItem('editor-content', JSON.stringify({
-          content,
-          title,
-          lastSaved: new Date().toISOString()
-        }));
-        setLastSaveTime(new Date().toLocaleTimeString());
-        setToast({ message: '已自动保存', type: 'success' });
-        
-        // 3秒后清除提示
-        setTimeout(() => {
-          setToast(null);
-        }, 3000);
-      } catch (error) {
-        console.error('自动保存失败:', error);
-        setToast({ message: '自动保存失败', type: 'error' });
-      }
-    }, 2000), // 2秒的防抖延迟
-    [title] // 添加 title 作为依赖
+      saveContent(editor, true);
+    }, 2000),
+    [saveContent]
   );
 
   const editor = useEditor({
@@ -254,13 +258,20 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
 
   const handleSave = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     if (!editor) return;
-    const buttonRect = event.currentTarget.getBoundingClientRect();
-    setDialogPosition({
-      x: buttonRect.right + 8,
-      y: buttonRect.top - 8
-    });
-    setIsConfirmDialogOpen(true);
-  }, [editor]);
+    
+    // 如果点击的是导出按钮
+    if (event.currentTarget.title === '导出文档') {
+      const buttonRect = event.currentTarget.getBoundingClientRect();
+      setDialogPosition({
+        x: buttonRect.right + 8,
+        y: buttonRect.top - 8
+      });
+      setIsConfirmDialogOpen(true);
+    } else {
+      // 如果是保存按钮，直接保存
+      saveContent(editor);
+    }
+  }, [editor, saveContent]);
 
   const handleConfirmSave = useCallback(() => {
     if (!editor) return;
@@ -367,11 +378,26 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
     <div className="min-h-screen bg-white">
       {toast && (
         <div
-          className={`fixed top-4 right-4 px-4 py-2 rounded-lg shadow-lg z-50 ${
-            toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'
-          } text-white`}
+          className={`fixed top-4 right-4 px-3 py-2 rounded-md shadow-lg z-[9999] ${
+            toast.type === 'success' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+          } flex items-center space-x-2 transition-all duration-300 transform translate-y-0 opacity-100 text-sm border ${
+            toast.type === 'success' ? 'border-green-200' : 'border-red-200'
+          }`}
+          style={{
+            animation: 'slideIn 0.3s ease-out',
+            boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.03)'
+          }}
         >
-          {toast.message}
+          {toast.type === 'success' ? (
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          ) : (
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          )}
+          <span>{toast.message}</span>
         </div>
       )}
       <ConfirmDialog

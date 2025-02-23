@@ -105,8 +105,6 @@ const TableSelector = ({ onSelect }: { onSelect: (rows: number, cols: number) =>
 };
 
 export const EditorToolbar = ({ editor, onLinkClick, onSave }: EditorToolbarProps) => {
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-
   if (!editor) {
     return null;
   }
@@ -169,14 +167,9 @@ export const EditorToolbar = ({ editor, onLinkClick, onSave }: EditorToolbarProp
           title: editor.getText().split('\n')[0] || '未命名文档', // 使用第一行文本作为标题
           lastSaved: new Date().toISOString()
         }));
-        
-        setToast({ message: '文档已保存到本地', type: 'success' });
-      } else {
-        setToast({ message: '本地存储不可用', type: 'error' });
       }
     } catch (error) {
       console.error('保存失败:', error);
-      setToast({ message: '保存失败，请重试', type: 'error' });
     }
   };
 
@@ -189,13 +182,6 @@ export const EditorToolbar = ({ editor, onLinkClick, onSave }: EditorToolbarProp
         accept="image/*"
         onChange={handleFileChange}
       />
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
       <Toolbar.Root className="flex flex-wrap gap-0.5 p-2">
         <ToolbarGroup>
           <DropdownMenu.Root>
@@ -487,7 +473,7 @@ export const EditorToolbar = ({ editor, onLinkClick, onSave }: EditorToolbarProp
             <FileDown className="w-4 h-4" />
           </ToolbarButton>
           <ToolbarButton
-            onClick={handleSave}
+            onClick={(e) => onSave(e)}
             title="保存文档"
           >
             <Save className="w-4 h-4" />
