@@ -28,17 +28,10 @@ import { FontSize } from './extensions/FontSize';
 import { InlineLinkEditor } from './InlineLinkEditor';
 import { useState, useCallback, useEffect } from 'react';
 import { ConfirmDialog } from './ConfirmDialog';
-import { 
-  Document, 
-  Packer, 
-  Paragraph, 
-  TextRun, 
-  HeadingLevel, 
-  AlignmentType, 
-  convertInchesToTwip,
-  ShadingType
-} from 'docx';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, convertInchesToTwip, ShadingType } from 'docx';
+import mammoth from 'mammoth';
 import debounce from 'lodash/debounce';
+import htmlDocx from 'html-docx-js/dist/html-docx';
 
 const lowlight = createLowlight(common);
 
@@ -48,6 +41,7 @@ interface TextRunWithSize extends TextRun {
 
 interface SavedContent {
   content: JSONContent;
+  html: string;
   lastSaved: string;
   title: string;
 }
@@ -98,8 +92,10 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
       
       try {
         const content = editor.getJSON();
+        const html = editor.getHTML();
         localStorage.setItem('editor-content', JSON.stringify({
           content,
+          html,
           title,
           lastSaved: new Date().toISOString()
         }));
@@ -115,7 +111,7 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
         setToast({ message: '自动保存失败', type: 'error' });
       }
     }, 2000), // 2秒的防抖延迟
-    [title] // 添加 title 作为依赖
+    [title]
   );
 
   const editor = useEditor({
@@ -180,7 +176,7 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
       }),
       SlashCommands,
     ],
-    content: loadSavedContent()?.content || content,
+    content: loadSavedContent()?.html || content,
     onUpdate: ({ editor }) => {
       onChange?.(editor.getHTML());
       const text = editor.state.doc.textContent;
@@ -277,147 +273,49 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
     // 处理文档标题
     const documentTitle = title.trim() || '未命名文档';
     
-    // 解析编辑器内容
-    const processNode = (node: any): Paragraph[] => {
-      const paragraphs: Paragraph[] = [];
+    // 获取编辑器的HTML内容
+    const html = editor.getHTML();
+    
+    // 创建一个包含完整HTML文档的字符串
+    const fullHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>${documentTitle}</title>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; margin: 2cm; }
+            table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+            th, td { border: 1px solid #ddd; padding: 8px; }
+            th { background-color: #f5f5f5; }
+            h1 { font-size: 24pt; margin-top: 1em; margin-bottom: 0.5em; }
+            h2 { font-size: 18pt; margin-top: 1em; margin-bottom: 0.5em; }
+            h3 { font-size: 14pt; margin-top: 1em; margin-bottom: 0.5em; }
+            p { margin: 1em 0; }
+            .text-left { text-align: left; }
+            .text-center { text-align: center; }
+            .text-right { text-align: right; }
+            .text-justify { text-align: justify; }
+            img { max-width: 100%; height: auto; }
+            a { color: #0066cc; text-decoration: underline; }
+            blockquote { border-left: 3px solid #ddd; margin: 1em 0; padding-left: 1em; }
+            code { background: #f5f5f5; padding: 0.2em 0.4em; border-radius: 3px; }
+          </style>
+        </head>
+        <body>
+          ${html}
+        </body>
+      </html>
+    `;
+
+    try {
+      // 使用 html-docx-js 将 HTML 转换为 docx
+      const converted = htmlDocx.asBlob(fullHtml);
       
-      if (node.type.name === 'paragraph' || node.type.name === 'heading') {
-        const children: TextRun[] = [];
-        
-        node.content?.forEach((child: any) => {
-          if (child.text) {
-            const style: any = {
-              text: child.text,
-              size: 24, // 默认字体大小为12pt (24半磅)
-            };
-            
-            // 处理文本样式
-            if (child.marks) {
-              child.marks.forEach((mark: any) => {
-                switch (mark.type) {
-                  case 'bold':
-                    style.bold = true;
-                    break;
-                  case 'italic':
-                    style.italics = true;
-                    break;
-                  case 'underline':
-                    style.underline = true;
-                    break;
-                  case 'strike':
-                    style.strike = true;
-                    break;
-                  case 'textStyle':
-                    if (mark.attrs.color) {
-                      style.color = mark.attrs.color;
-                    }
-                    if (mark.attrs.backgroundColor) {
-                      style.shading = {
-                        type: ShadingType.SOLID,
-                        color: mark.attrs.backgroundColor,
-                        fill: mark.attrs.backgroundColor
-                      };
-                    }
-                    if (mark.attrs.fontSize) {
-                      // 将像素值转换为半磅值 (1pt = 2 half-points)
-                      const px = parseFloat(mark.attrs.fontSize);
-                      style.size = Math.round((px / 1.333333) * 2);
-                    }
-                    break;
-                }
-              });
-            }
-            
-            children.push(new TextRun(style));
-          }
-        });
-
-        const paragraphStyle: any = {
-          children,
-          spacing: {
-            before: 240, // 12pt = 240 twentieths of a point
-            after: 240,
-            line: 360, // 18pt = 360 twentieths of a point
-          },
-          indent: {
-            firstLine: 480, // 24pt = 480 twentieths of a point
-          }
-        };
-
-        // 处理对齐方式
-        if (node.attrs.textAlign) {
-          switch (node.attrs.textAlign) {
-            case 'left':
-              paragraphStyle.alignment = AlignmentType.LEFT;
-              break;
-            case 'center':
-              paragraphStyle.alignment = AlignmentType.CENTER;
-              break;
-            case 'right':
-              paragraphStyle.alignment = AlignmentType.RIGHT;
-              break;
-            case 'justify':
-              paragraphStyle.alignment = AlignmentType.JUSTIFIED;
-              break;
-          }
-        }
-
-        // 处理标题级别
-        if (node.type.name === 'heading') {
-          paragraphStyle.heading = HeadingLevel.HEADING_1 + (node.attrs.level - 1);
-          // 设置标题的字体大小
-          switch (node.attrs.level) {
-            case 1:
-              children.forEach(run => (run as TextRunWithSize).size = 64); // 32pt
-              break;
-            case 2:
-              children.forEach(run => (run as TextRunWithSize).size = 56); // 28pt
-              break;
-            case 3:
-              children.forEach(run => (run as TextRunWithSize).size = 48); // 24pt
-              break;
-          }
-          // 标题不需要首行缩进
-          delete paragraphStyle.indent;
-        }
-
-        paragraphs.push(new Paragraph(paragraphStyle));
-      }
-      
-      // 递归处理子节点
-      if (node.content) {
-        node.content.forEach((child: any) => {
-          paragraphs.push(...processNode(child));
-        });
-      }
-      
-      return paragraphs;
-    };
-
-    // 创建新的Word文档
-    const doc = new Document({
-      sections: [{
-        properties: {
-          page: {
-            margin: {
-              top: convertInchesToTwip(1),
-              right: convertInchesToTwip(1),
-              bottom: convertInchesToTwip(1),
-              left: convertInchesToTwip(1),
-            },
-          },
-        },
-        children: processNode(editor.state.doc),
-      }],
-    });
-
-    // 生成docx文件
-    Packer.toBlob(doc).then(blob => {
       // 创建下载链接
-      const url = window.URL.createObjectURL(blob);
+      const url = URL.createObjectURL(converted);
       const a = document.createElement('a');
       a.href = url;
-      // 使用文档标题作为文件名
       a.download = `${documentTitle}.docx`;
       
       // 触发下载
@@ -426,12 +324,15 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
       
       // 清理
       document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
+      URL.revokeObjectURL(url);
       
       // 更新保存时间
       setLastSaveTime(new Date().toLocaleTimeString());
       setIsConfirmDialogOpen(false);
-    });
+    } catch (error) {
+      console.error('导出文档失败:', error);
+      setToast({ message: '导出失败，请重试', type: 'error' });
+    }
   }, [editor, title]);
 
   const handleLinkClick = useCallback(() => {
