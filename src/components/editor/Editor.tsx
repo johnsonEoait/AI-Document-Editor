@@ -18,7 +18,6 @@ import { TextSelection } from 'prosemirror-state';
 import { Node as ProsemirrorNode } from 'prosemirror-model';
 import { EditorToolbar } from './Toolbar';
 import { FloatingAIToolbar } from './FloatingAIToolbar';
-import { BlockMenu } from './BlockMenu';
 import { SlashCommands } from './SlashCommands';
 import { TableMenu } from './TableMenu';
 import { TableQuickButtons } from './TableQuickButtons';
@@ -205,22 +204,17 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
           </div>
         </div>
         <div className="pt-[140px] pb-16 min-h-[calc(100vh-180px)] bg-white">
-          <div className="relative flex">
-            <div className="w-10 flex-shrink-0 relative">
-              <BlockMenu editor={editor} />
-            </div>
-            <div className="flex-1 px-8">
-              <div className="relative">
-                <EditorContent editor={editor} />
-                <TableMenu editor={editor} />
-                <TableQuickButtons editor={editor} />
-                {!isLinkEditorOpen && <FloatingAIToolbar editor={editor} />}
-                <InlineLinkEditor
-                  editor={editor}
-                  isOpen={isLinkEditorOpen}
-                  onClose={() => setIsLinkEditorOpen(false)}
-                />
-              </div>
+          <div className="relative">
+            <div className="relative">
+              <EditorContent editor={editor} />
+              <TableMenu editor={editor} />
+              <TableQuickButtons editor={editor} />
+              {!isLinkEditorOpen && <FloatingAIToolbar editor={editor} />}
+              <InlineLinkEditor
+                editor={editor}
+                isOpen={isLinkEditorOpen}
+                onClose={() => setIsLinkEditorOpen(false)}
+              />
             </div>
           </div>
         </div>
