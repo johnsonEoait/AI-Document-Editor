@@ -53,21 +53,16 @@ interface EditorProps {
 // 修改生成目录的辅助函数
 const generateTableOfContents = (editor: any) => {
   const headings: { level: number; text: string }[] = [];
-  let isFirstHeading = true;
   
   editor.state.doc.descendants((node: any) => {
-    if (node.type.name === 'heading') {
-      // 跳过第一个标题（文档标题）
-      if (isFirstHeading) {
-        isFirstHeading = false;
-        return;
-      }
+    if (node.type.name === 'heading' && node.textContent.trim()) {
       headings.push({
         level: node.attrs.level,
         text: node.textContent
       });
     }
   });
+
   return headings;
 };
 
@@ -116,22 +111,13 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
   // 更新目录的函数
   const updateTableOfContents = useCallback((editor: any) => {
     const headings: { level: number; text: string }[] = [];
-    let isFirstHeading = true;
     
     editor.state.doc.descendants((node: any) => {
-      if (node.type.name === 'heading') {
-        // 跳过第一个标题（文档标题）
-        if (isFirstHeading) {
-          isFirstHeading = false;
-          return;
-        }
-        // 只添加非空的标题到目录中
-        if (node.textContent.trim()) {
-          headings.push({
-            level: node.attrs.level,
-            text: node.textContent
-          });
-        }
+      if (node.type.name === 'heading' && node.textContent.trim()) {
+        headings.push({
+          level: node.attrs.level,
+          text: node.textContent
+        });
       }
     });
     
@@ -586,80 +572,107 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
         </div>
         <div className="pt-[140px] pb-16 min-h-[calc(100vh-180px)] bg-white">
           <div className="relative max-w-5xl mx-auto">
-            {showToc && (
-              <div className="absolute" style={{ left: '-380px', width: '250px' }}>
-                <div className="bg-gray-50 rounded-lg sticky top-[140px] mt-[38px]">
-                  <div className="px-4 py-4">
-                    <div className="text-xl font-bold mb-4 break-words">{title}</div>
-                    <div className="space-y-2 max-h-[calc(100vh-240px)] overflow-y-auto">
-                      {tableOfContents.map((heading, index) => {
-                        // 计算编号
-                        let prefix = '';
-                        let parentStack = [];
-                        let currentCount = 1;
+            {/* 左侧目录 - 绝对定位 */}
+            <div className={`fixed transition-all duration-300 ease-in-out ${showToc ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-full'}`} 
+                 style={{ 
+                   left: 'max(24px, calc((100vw - 1280px - 640px) / 2))', 
+                   top: '140px', 
+                   width: '280px',
+                   maxWidth: 'calc((100vw - 1280px) / 2 - 24px)'
+                 }}>
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                <div className="px-4 py-3 border-b border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm font-medium text-gray-700">目录</div>
+                    <button
+                      onClick={() => setShowToc(false)}
+                      className="p-1 hover:bg-gray-100 rounded-md transition-colors"
+                      aria-label="关闭目录"
+                    >
+                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <div className="px-1 py-2">
+                  <div className="space-y-0.5 max-h-[calc(100vh-240px)] overflow-y-auto">
+                    {tableOfContents.map((heading, index) => {
+                      // 计算编号
+                      let prefix = '';
+                      let parentStack = [];
+                      let currentCount = 1;
+                      
+                      // 向前查找同级标题的数量
+                      for (let i = 0; i < index; i++) {
+                        const prevHeading = tableOfContents[i];
                         
-                        // 向前查找同级标题的数量
-                        for (let i = 0; i < index; i++) {
-                          const prevHeading = tableOfContents[i];
-                          
-                          if (prevHeading.level < heading.level) {
-                            // 遇到上级标题，更新父级栈
-                            while (parentStack.length > 0 && parentStack[parentStack.length - 1].level >= prevHeading.level) {
-                              parentStack.pop();
-                            }
-                            parentStack.push({
-                              level: prevHeading.level,
-                              number: i + 1
-                            });
-                            currentCount = 1;
-                          } else if (prevHeading.level === heading.level) {
-                            // 同级标题，计数加1
-                            currentCount++;
+                        if (prevHeading.level < heading.level) {
+                          while (parentStack.length > 0 && parentStack[parentStack.length - 1].level >= prevHeading.level) {
+                            parentStack.pop();
                           }
+                          parentStack.push({
+                            level: prevHeading.level,
+                            number: i + 1
+                          });
+                          currentCount = 1;
+                        } else if (prevHeading.level === heading.level) {
+                          currentCount++;
                         }
-                        
-                        // 生成编号
-                        if (parentStack.length > 0) {
-                          prefix = parentStack.map(p => p.number).join('.') + '.' + currentCount;
-                        } else {
-                          prefix = currentCount + '.';
-                        }
-                        
-                        return (
-                          <div
-                            key={index}
-                            className="cursor-pointer hover:text-blue-600 text-base py-1 truncate flex items-center gap-0.5"
-                            style={{ paddingLeft: `${(heading.level - 1) * 1}rem` }}
-                            onClick={() => {
-                              const text = heading.text;
-                              let pos = 0;
-                              editor.state.doc.descendants((node: any, nodePos: number) => {
-                                if (node.type.name === 'heading' && node.textContent === text) {
-                                  pos = nodePos;
-                                  return false;
-                                }
-                              });
-                              editor.commands.setTextSelection(pos);
-                              editor.commands.scrollIntoView();
-                            }}
-                          >
-                            <span 
-                              className="inline-block" 
-                              style={{ 
-                                width: heading.level === 1 ? '1.25rem' : heading.level === 2 ? '2rem' : '2.5rem'
-                              }}
-                            >
+                      }
+                      
+                      // 生成编号
+                      if (parentStack.length > 0) {
+                        prefix = parentStack.map(p => p.number).join('.') + '.' + currentCount;
+                      } else {
+                        prefix = currentCount + '.';
+                      }
+                      
+                      return (
+                        <div
+                          key={index}
+                          className="group relative cursor-pointer text-[13px] leading-6 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                          style={{ 
+                            paddingLeft: `${(heading.level - 1) * 1.25 + 0.75}rem`,
+                            paddingRight: '0.75rem',
+                          }}
+                          onClick={() => {
+                            const text = heading.text;
+                            let pos = 0;
+                            editor.state.doc.descendants((node: any, nodePos: number) => {
+                              if (node.type.name === 'heading' && node.textContent === text) {
+                                pos = nodePos;
+                                return false;
+                              }
+                            });
+                            editor.commands.setTextSelection(pos);
+                            editor.commands.scrollIntoView();
+                          }}
+                        >
+                          <div className="flex items-center py-1 gap-1.5">
+                            <span className="text-gray-400 min-w-[1.5rem] text-right">
                               {prefix}
                             </span>
-                            <span className="truncate">{heading.text}</span>
+                            <span className="truncate flex-1">{heading.text}</span>
+                            <span className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
+                            </span>
                           </div>
-                        );
-                      })}
-                    </div>
+                        </div>
+                      );
+                    })}
+                    {tableOfContents.length === 0 && (
+                      <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                        暂无目录内容
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
-            )}
+            </div>
+            {/* 主编辑区域 */}
             <div className="px-6">
               <EditorContent 
                 editor={editor}
