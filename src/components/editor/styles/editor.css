@@ -17,6 +17,145 @@
   opacity: 1 !important;
 }
 
+.block-handle .block-type-icon svg {
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.block-handle:hover .block-type-icon svg {
+  opacity: 1;
+}
+
+/* 拖拽相关样式 */
+.dragging-active {
+  cursor: move !important;
+}
+
+.dragging {
+  opacity: 0.5;
+  position: relative;
+  pointer-events: none;
+  background-color: rgba(59, 130, 246, 0.1);
+  border: 2px solid rgb(59, 130, 246);
+  border-radius: 4px;
+}
+
+.drag-ghost {
+  opacity: 0.8;
+  background-color: white;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 9999;
+  max-width: 800px;
+  transform: translateY(-50%);
+  border: 2px solid rgb(37, 99, 235);
+  background-color: rgba(37, 99, 235, 0.05);
+}
+
+.drop-target {
+  position: relative;
+}
+
+.drop-target-before::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -60px;
+  right: 0;
+  height: 3px;
+  background: rgb(37, 99, 235);
+  border-radius: 3px;
+  pointer-events: none;
+  z-index: 100;
+  transform: translateY(-50%);
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.1);
+}
+
+.drop-target-after::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: -60px;
+  right: 0;
+  height: 3px;
+  background: rgb(37, 99, 235);
+  border-radius: 3px;
+  pointer-events: none;
+  z-index: 100;
+  transform: translateY(50%);
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.1);
+}
+
+/* 拖拽手柄样式 */
+.drag-handle {
+  cursor: move;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.block-handle:hover .drag-handle {
+  opacity: 1;
+}
+
+/* 块级元素的基础样式 */
+.ProseMirror p,
+.ProseMirror h1,
+.ProseMirror h2,
+.ProseMirror h3,
+.ProseMirror h4,
+.ProseMirror h5,
+.ProseMirror h6,
+.ProseMirror ul,
+.ProseMirror ol,
+.ProseMirror blockquote,
+.ProseMirror pre,
+.ProseMirror table {
+  transition: all 0.2s ease;
+  padding: 4px 0;
+  margin: 0;
+  min-height: 1.5em;
+  position: relative;
+  border-radius: 4px;
+}
+
+/* 移除引用中的引号 */
+.ProseMirror blockquote {
+  quotes: none;
+}
+
+.ProseMirror blockquote::before,
+.ProseMirror blockquote::after {
+  content: none;
+}
+
+/* 块级元素的激活状态 */
+.ProseMirror p.is-active,
+.ProseMirror h1.is-active,
+.ProseMirror h2.is-active,
+.ProseMirror h3.is-active,
+.ProseMirror h4.is-active,
+.ProseMirror h5.is-active,
+.ProseMirror h6.is-active,
+.ProseMirror ul.is-active,
+.ProseMirror ol.is-active,
+.ProseMirror blockquote.is-active,
+.ProseMirror pre.is-active,
+.ProseMirror table.is-active {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+/* 块级句柄的悬停区域 */
+.block-handle > div {
+  padding: 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.block-handle > div:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
 /* Markdown 表格样式 */
 .ProseMirror table {
   border-collapse: collapse;
@@ -54,37 +193,6 @@
 
 .ProseMirror tr:hover {
   background-color: #f3f4f6;
-}
-
-/* 为所有块级元素添加悬停效果 */
-.ProseMirror p:hover,
-.ProseMirror h1:hover,
-.ProseMirror h2:hover,
-.ProseMirror h3:hover,
-.ProseMirror ul:hover,
-.ProseMirror ol:hover,
-.ProseMirror blockquote:hover,
-.ProseMirror pre:hover,
-.ProseMirror table:hover {
-  background-color: rgba(0, 0, 0, 0.02);
-  border-radius: 4px;
-}
-
-/* 块级元素的过渡效果 */
-.ProseMirror p,
-.ProseMirror h1,
-.ProseMirror h2,
-.ProseMirror h3,
-.ProseMirror ul,
-.ProseMirror ol,
-.ProseMirror blockquote,
-.ProseMirror pre,
-.ProseMirror table {
-  transition: background-color 0.2s ease;
-  padding: 4px 0;
-  margin: 0;
-  min-height: 1.5em;
-  position: relative;
 }
 
 /* 确保句柄在编辑器内部正确定位 */
@@ -130,6 +238,83 @@
 
 .table-context-menu::-webkit-scrollbar-thumb:hover {
   background-color: rgba(0, 0, 0, 0.3);
+}
+
+/* 动画延迟类 */
+.animation-delay-150 {
+  animation-delay: 150ms;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+/* 优化渐变动画 */
+@keyframes gradient-xy {
+  0%, 100% {
+    background-size: 400% 400%;
+    background-position: 0% 0%;
+    opacity: 0.9;
+  }
+  25% {
+    background-size: 400% 400%;
+    background-position: 100% 0%;
+    opacity: 0.8;
+  }
+  50% {
+    background-size: 400% 400%;
+    background-position: 100% 100%;
+    opacity: 0.9;
+  }
+  75% {
+    background-size: 400% 400%;
+    background-position: 0% 100%;
+    opacity: 0.8;
+  }
+}
+
+/* 优化浮动动画 */
+@keyframes blob {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+    opacity: 0.7;
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+    opacity: 0.9;
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+    opacity: 0.8;
+  }
+}
+
+.animate-gradient-xy {
+  animation: gradient-xy 20s ease infinite;
+}
+
+.animate-blob {
+  animation: blob 10s ease-in-out infinite;
+}
+
+/* 淡入动画 */
+.editor-disabled-overlay {
+  animation: overlayFadeIn 0.5s ease-out;
+}
+
+@keyframes overlayFadeIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(4px);
+  }
 }
 
 /* 查找高亮样式 */

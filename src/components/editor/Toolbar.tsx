@@ -29,7 +29,12 @@ import {
   Text,
   FileDown,
   Save,
+  Heading1,
+  Heading2,
+  Heading3,
+  Wand2,
 } from 'lucide-react';
+import { Heading4, Heading5, Heading6 } from './extensions/BlockHandle';
 import * as Popover from '@radix-ui/react-popover';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useRef, useState } from 'react';
@@ -200,32 +205,60 @@ export const EditorToolbar = ({ editor, onLinkClick, onSave, onTocClick, showToc
           <DropdownMenu.Root>
             <DropdownMenu.Trigger asChild>
               <button className="flex items-center gap-0.5 p-2 rounded hover:bg-gray-100 transition-colors">
-                <Type className="w-4 h-4" />
+                {editor.isActive('heading', { level: 1 }) && <Heading1 className="w-4 h-4" />}
+                {editor.isActive('heading', { level: 2 }) && <Heading2 className="w-4 h-4" />}
+                {editor.isActive('heading', { level: 3 }) && <Heading3 className="w-4 h-4" />}
+                {editor.isActive('heading', { level: 4 }) && <Heading4 className="w-4 h-4" />}
+                {editor.isActive('heading', { level: 5 }) && <Heading5 className="w-4 h-4" />}
+                {editor.isActive('heading', { level: 6 }) && <Heading6 className="w-4 h-4" />}
+                {!editor.isActive('heading') && <Text className="w-4 h-4" />}
                 <ChevronDown className="w-3 h-3 opacity-50" />
               </button>
             </DropdownMenu.Trigger>
             <DropdownMenu.Portal>
               <DropdownMenu.Content 
-                className="bg-white rounded-lg shadow-lg py-1.5 min-w-[180px] border border-gray-200"
+                className="bg-white rounded-lg shadow-lg py-1.5 min-w-[180px] border border-gray-200 z-[100]"
                 sideOffset={5}
               >
-                {[1, 2, 3, 4, 5, 6].map((level) => (
+                {[
+                  { level: 1, icon: Heading1 },
+                  { level: 2, icon: Heading2 },
+                  { level: 3, icon: Heading3 },
+                  { level: 4, icon: Heading4 },
+                  { level: 5, icon: Heading5 },
+                  { level: 6, icon: Heading6 }
+                ].map(({ level, icon: Icon }) => (
                   <DropdownMenu.Item
                     key={level}
-                    className="flex items-center px-3 py-1.5 text-sm hover:bg-gray-50 cursor-pointer outline-none"
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-gray-50 cursor-pointer outline-none"
                     onClick={() => editor.chain().focus().toggleHeading({ level: level as Level }).run()}
                   >
+                    <Icon 
+                      className={`w-4 h-4 ${editor.isActive('heading', { level }) ? 'text-blue-600' : 'text-gray-500'}`}
+                    />
                     <span 
-                      className={`${editor.isActive('heading', { level: level as Level }) ? 'font-medium text-blue-600' : ''}`}
+                      className={`${editor.isActive('heading', { level }) ? 'font-medium text-blue-600' : ''}`}
                       style={{ 
-                        fontSize: `${level === 1 ? '1.1em' : level === 2 ? '1.05em' : '1em'}`,
-                        fontWeight: level <= 2 ? 500 : 400
+                        fontSize: `${level === 1 ? '1.1em' : level === 2 ? '1.05em' : level === 3 ? '1em' : level === 4 ? '0.95em' : level === 5 ? '0.9em' : '0.85em'}`,
+                        fontWeight: level <= 3 ? 500 : 400
                       }}
                     >
                       标题 {level}
                     </span>
                   </DropdownMenu.Item>
                 ))}
+                <DropdownMenu.Separator className="h-px bg-gray-200 my-1.5" />
+                <DropdownMenu.Item
+                  className="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-gray-50 cursor-pointer outline-none"
+                  onClick={() => editor.chain().focus().setParagraph().run()}
+                >
+                  <Text 
+                    className={`w-4 h-4 ${editor.isActive('paragraph') ? 'text-blue-600' : 'text-gray-500'}`}
+                  />
+                  <span className={editor.isActive('paragraph') ? 'font-medium text-blue-600' : ''}>
+                    正文
+                  </span>
+                </DropdownMenu.Item>
               </DropdownMenu.Content>
             </DropdownMenu.Portal>
           </DropdownMenu.Root>
@@ -281,7 +314,7 @@ export const EditorToolbar = ({ editor, onLinkClick, onSave, onTocClick, showToc
             </Popover.Trigger>
             <Popover.Portal>
               <Popover.Content
-                className="bg-white rounded-lg shadow-lg p-2 w-[200px]"
+                className="bg-white rounded-lg shadow-lg p-2 w-[200px] z-[100]"
                 sideOffset={5}
               >
                 <div className="grid grid-cols-5 gap-1">
@@ -326,7 +359,7 @@ export const EditorToolbar = ({ editor, onLinkClick, onSave, onTocClick, showToc
             </Popover.Trigger>
             <Popover.Portal>
               <Popover.Content
-                className="bg-white rounded-lg shadow-lg p-2 w-[200px]"
+                className="bg-white rounded-lg shadow-lg p-2 w-[200px] z-[100]"
                 sideOffset={5}
               >
                 <div className="grid grid-cols-5 gap-1">
@@ -448,7 +481,7 @@ export const EditorToolbar = ({ editor, onLinkClick, onSave, onTocClick, showToc
             </Popover.Trigger>
             <Popover.Portal>
               <Popover.Content
-                className="bg-white rounded-lg shadow-lg"
+                className="bg-white rounded-lg shadow-lg z-[100]"
                 sideOffset={5}
               >
                 <TableSelector
@@ -479,6 +512,16 @@ export const EditorToolbar = ({ editor, onLinkClick, onSave, onTocClick, showToc
         </ToolbarGroup>
 
         <ToolbarGroup>
+          <ToolbarButton
+            onClick={() => {
+              if (editor.aiToolbar?.show) {
+                editor.aiToolbar.show();
+              }
+            }}
+            title="AI 助手 (Alt + /)"
+          >
+            <Wand2 className="w-4 h-4" />
+          </ToolbarButton>
           <ToolbarButton
             onClick={(e) => onSave(e)}
             title="导出文档"

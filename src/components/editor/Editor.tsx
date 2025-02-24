@@ -33,6 +33,7 @@ import htmlDocx from 'html-docx-js/dist/html-docx';
 import debounce from 'lodash/debounce';
 import { BlockHandle } from './extensions/BlockHandle';
 import { TableMenu } from './TableMenu';
+import { AIShortcut } from './extensions/AIShortcut';
 import './styles/editor.css';
 
 const lowlight = createLowlight(common);
@@ -86,6 +87,7 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
   const [title, setTitle] = useState<string>('未命名文档');
   const [showToc, setShowToc] = useState(false);
   const [tableOfContents, setTableOfContents] = useState<{ level: number; text: string }[]>([]);
+  const [isEditorDisabled, setIsEditorDisabled] = useState(false);
 
   // 从本地存储加载内容
   const loadSavedContent = useCallback((): SavedContent | null => {
@@ -176,7 +178,12 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
     extensions: [
       StarterKit.configure({
         heading: {
-          levels: [1, 2, 3],
+          levels: [1, 2, 3, 4, 5, 6],
+        },
+        blockquote: {
+          HTMLAttributes: {
+            class: 'border-l-4 border-gray-300 pl-4 my-4',
+          },
         },
         bulletList: {
           HTMLAttributes: {
@@ -188,8 +195,17 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
             class: 'list-decimal list-outside ml-4',
           },
         },
+        paragraph: {
+          HTMLAttributes: {
+            class: 'my-2',
+          },
+        },
       }),
-      BlockHandle,
+      BlockHandle.configure({
+        HTMLAttributes: {
+          class: 'block-handle',
+        },
+      }),
       Markdown.configure({
         transformPastedText: true,
         transformCopiedText: true,
@@ -257,6 +273,7 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
         lowlight,
       }),
       SlashCommands,
+      AIShortcut,
     ],
     content: loadSavedContent()?.content || content,
     onUpdate: ({ editor }) => {
@@ -289,89 +306,11 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
       // 触发自动保存
       debouncedAutoSave(editor);
     },
+    editable: true,
+    injectCSS: false,
     editorProps: {
       attributes: {
-        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl focus:outline-none min-h-[500px] px-8 py-6 markdown-body',
-      },
-      handleKeyDown: (view, event) => {
-        // 检查是否按下了 Ctrl+F
-        if (event.ctrlKey && event.key === 'f') {
-          // 阻止浏览器默认的查找行为
-          event.preventDefault();
-          // 触发查找替换按钮的点击事件
-          const findReplaceButton = document.querySelector('[title="查找和替换"]') as HTMLButtonElement;
-          if (findReplaceButton) {
-            findReplaceButton.click();
-            return true;
-          }
-        }
-        return false;
-      },
-      handleClick: (view, pos, event) => {
-        const { state } = view;
-        const { doc } = state;
-        
-        // 获取编辑器的DOM元素
-        const editorElement = view.dom as HTMLElement;
-        const editorRect = editorElement.getBoundingClientRect();
-        
-        // 获取点击的坐标
-        const mouseY = event.clientY;
-        
-        // 找到点击位置最近的节点
-        let clickedNode = null;
-        let clickedPos = -1;
-        
-        doc.nodesBetween(0, doc.content.size, (node, pos) => {
-          if (node.isBlock) {
-            const dom = view.nodeDOM(pos) as HTMLElement;
-            if (dom) {
-              const rect = dom.getBoundingClientRect();
-              if (mouseY >= rect.top && mouseY <= rect.bottom + 20) { // 添加一些额外的点击区域
-                clickedNode = node;
-                clickedPos = pos;
-                return false; // 停止遍历
-              }
-            }
-          }
-          return true;
-        });
-        
-        // 如果点击位置在最后一个块的下方
-        if (!clickedNode) {
-          const lastChild = doc.lastChild;
-          if (lastChild) {
-            const lastPos = doc.content.size - lastChild.nodeSize;
-            const lastDom = view.nodeDOM(lastPos) as HTMLElement;
-            
-            if (lastDom) {
-              const lastRect = lastDom.getBoundingClientRect();
-              
-              if (mouseY > lastRect.bottom) {
-                // 检查最后一个节点是否为空段落
-                const isEmptyParagraph = lastChild.type.name === 'paragraph' && lastChild.content.size === 0;
-                
-                if (!isEmptyParagraph) {
-                  // 在文档末尾插入新的空段落
-                  const tr = view.state.tr.insert(
-                    doc.content.size,
-                    state.schema.nodes.paragraph.create()
-                  );
-                  
-                  // 将光标移动到新段落
-                  const newPos = doc.content.size;
-                  tr.setSelection(TextSelection.create(tr.doc, newPos));
-                  
-                  view.dispatch(tr);
-                  view.focus();
-                  return true;
-                }
-              }
-            }
-          }
-        }
-        
-        return false;
+        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl focus:outline-none min-h-[500px] px-8 py-6 markdown-body relative',
       },
     },
     parseOptions: {
@@ -567,6 +506,28 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
     }
   }, [editor, debouncedAutoSave]);
 
+  useEffect(() => {
+    if (!editor) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && (e.key === '/' || e.key === '？')) {
+        e.preventDefault();
+        // 如果有选中的文本，显示 AI 工具栏
+        if (editor.state.selection.content().size > 0 && editor.aiToolbar?.show) {
+          editor.aiToolbar.show();
+        }
+      }
+    };
+
+    // 添加事件监听器
+    editor.view.dom.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      // 移除事件监听器
+      editor.view.dom.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [editor]);
+
   if (!editor) {
     return null;
   }
@@ -604,6 +565,42 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
         position={dialogPosition ?? undefined}
       />
       <div className="max-w-5xl mx-auto relative editor-container">
+        {/* 全屏遮罩层 */}
+        {isEditorDisabled && (
+          <div 
+            className="fixed inset-0 z-[999] overflow-hidden editor-disabled-overlay"
+            style={{ cursor: 'not-allowed' }}
+          >
+            {/* 背景遮罩 */}
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-50/80 via-purple-50/80 to-pink-50/80 backdrop-blur-[4px] animate-gradient-xy" />
+            
+            {/* 动态光效 */}
+            <div className="absolute inset-0">
+              <div className="absolute w-[800px] h-[800px] bg-blue-200/30 rounded-full blur-3xl animate-blob" 
+                style={{ top: '10%', left: '15%' }} 
+              />
+              <div className="absolute w-[700px] h-[700px] bg-purple-200/30 rounded-full blur-3xl animate-blob animation-delay-2000" 
+                style={{ top: '40%', right: '15%' }} 
+              />
+              <div className="absolute w-[750px] h-[750px] bg-pink-200/30 rounded-full blur-3xl animate-blob animation-delay-4000" 
+                style={{ bottom: '15%', left: '35%' }} 
+              />
+            </div>
+
+            {/* AI 处理中提示 */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="px-8 py-6 rounded-2xl bg-white/80 backdrop-blur-xl shadow-2xl transform hover:scale-105 transition-all duration-500">
+                <div className="flex items-center gap-4">
+                  <div className="relative w-6 h-6">
+                    <div className="absolute inset-0 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                    <div className="absolute inset-1 border-3 border-purple-400 border-t-transparent rounded-full animate-spin animation-delay-150" />
+                  </div>
+                  <span className="text-gray-700 font-medium text-lg">AI 创作中...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b shadow-sm">
           <div className="max-w-5xl mx-auto">
             <div className="flex items-center justify-between py-4 px-6">
@@ -707,7 +704,12 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
                 editor={editor}
                 className="editor-content relative prose prose-sm sm:prose lg:prose-lg xl:prose-2xl focus:outline-none min-h-[calc(100vh-280px)]"
               />
-              {!isLinkEditorOpen && <FloatingAIToolbar editor={editor} />}
+              {!isLinkEditorOpen && (
+                <FloatingAIToolbar 
+                  editor={editor} 
+                  onLoadingChange={setIsEditorDisabled}
+                />
+              )}
               <InlineLinkEditor
                 editor={editor}
                 isOpen={isLinkEditorOpen}
