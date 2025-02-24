@@ -48,6 +48,8 @@ interface EditorToolbarProps {
   editor: Editor;
   onLinkClick: () => void;
   onSave: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  onTocClick: () => void;
+  showToc: boolean;
 }
 
 const TableSelector = ({ onSelect }: { onSelect: (rows: number, cols: number) => void }) => {
@@ -110,7 +112,7 @@ const TableSelector = ({ onSelect }: { onSelect: (rows: number, cols: number) =>
   );
 };
 
-export const EditorToolbar = ({ editor, onLinkClick, onSave }: EditorToolbarProps) => {
+export const EditorToolbar = ({ editor, onLinkClick, onSave, onTocClick, showToc }: EditorToolbarProps) => {
   if (!editor) {
     return null;
   }
@@ -190,6 +192,16 @@ export const EditorToolbar = ({ editor, onLinkClick, onSave }: EditorToolbarProp
       />
       <Toolbar.Root className="flex flex-wrap gap-0.5 p-2">
         <ToolbarGroup>
+          <ToolbarButton
+            onClick={onTocClick}
+            active={showToc}
+            title="目录"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+            </svg>
+          </ToolbarButton>
+
           <DropdownMenu.Root>
             <DropdownMenu.Trigger asChild>
               <button className="flex items-center gap-0.5 p-2 rounded hover:bg-gray-100 transition-colors">

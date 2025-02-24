@@ -50,6 +50,33 @@ interface EditorProps {
   placeholder?: string;
 }
 
+// 修改生成目录的辅助函数
+const generateTableOfContents = (editor: any) => {
+  const headings: { level: number; text: string }[] = [];
+  let isFirstHeading = true;
+  
+  editor.state.doc.descendants((node: any) => {
+    if (node.type.name === 'heading') {
+      // 跳过第一个标题（文档标题）
+      if (isFirstHeading) {
+        isFirstHeading = false;
+        return;
+      }
+      headings.push({
+        level: node.attrs.level,
+        text: node.textContent
+      });
+    }
+  });
+  return headings;
+};
+
+const generateTitle = (content: string): string => {
+  // 提取第一段非空文本作为标题
+  const firstParagraph = content.split('\n').find(p => p.trim().length > 0);
+  return firstParagraph?.slice(0, 50) || '未命名文档';
+};
+
 export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来插入内容...' }: EditorProps) => {
   const [wordCount, setWordCount] = useState(0);
   const [isLinkEditorOpen, setIsLinkEditorOpen] = useState(false);
@@ -58,6 +85,8 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
   const [dialogPosition, setDialogPosition] = useState<{ x: number; y: number } | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [title, setTitle] = useState<string>('未命名文档');
+  const [showToc, setShowToc] = useState(false);
+  const [tableOfContents, setTableOfContents] = useState<{ level: number; text: string }[]>([]);
   const [isEditorDisabled, setIsEditorDisabled] = useState(false);
 
   // 从本地存储加载内容
@@ -83,6 +112,32 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
       setTitle(savedData.title);
     }
   }, [loadSavedContent]);
+
+  // 更新目录的函数
+  const updateTableOfContents = useCallback((editor: any) => {
+    const headings: { level: number; text: string }[] = [];
+    let isFirstHeading = true;
+    
+    editor.state.doc.descendants((node: any) => {
+      if (node.type.name === 'heading') {
+        // 跳过第一个标题（文档标题）
+        if (isFirstHeading) {
+          isFirstHeading = false;
+          return;
+        }
+        // 只添加非空的标题到目录中
+        if (node.textContent.trim()) {
+          headings.push({
+            level: node.attrs.level,
+            text: node.textContent
+          });
+        }
+      }
+    });
+    
+    // 直接更新目录状态
+    setTableOfContents(headings);
+  }, []);
 
   // 创建通用的保存函数
   const saveContent = useCallback((editor: ReturnType<typeof useEditor>, isAuto = false) => {
@@ -227,6 +282,27 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
       const text = editor.state.doc.textContent;
       setWordCount(text.length);
       
+      // 获取第一个节点的文本作为标题
+      const firstNode = editor.state.doc.firstChild;
+      if (firstNode && firstNode.type.name === 'heading' && firstNode.attrs.level === 1) {
+        setTitle(firstNode.textContent);
+      }
+      
+      // 每次内容更新时都更新目录
+      updateTableOfContents(editor);
+      
+      // 如果第一个节点不是标题，自动将其转换为标题
+      if (firstNode && firstNode.type.name !== 'heading') {
+        const content = firstNode.textContent;
+        editor.chain()
+          .focus()
+          .setTextSelection(0)
+          .deleteRange({ from: 0, to: firstNode.nodeSize })
+          .setNode('heading', { level: 1 })
+          .insertContent(content)
+          .run();
+      }
+      
       // 触发自动保存
       debouncedAutoSave(editor);
     },
@@ -365,6 +441,71 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
     }
   }, [editor]);
 
+  // 修改目录生成函数
+  const handleGenerateTocAndTitle = useCallback(() => {
+    if (!editor) return;
+    
+    // 切换目录显示状态
+    setShowToc(!showToc);
+    
+    // 不管目录是否显示，都更新目录内容
+    updateTableOfContents(editor);
+    
+    // 显示提示
+    setToast({
+      message: !showToc ? '已显示目录' : '已隐藏目录',
+      type: 'success'
+    });
+  }, [editor, showToc, updateTableOfContents]);
+
+  // 初始化目录内容和标题
+  useEffect(() => {
+    if (editor && showToc) {
+      updateTableOfContents(editor);
+    }
+  }, [editor, showToc, updateTableOfContents]);
+
+  // 修改输入框的onChange处理
+  const handleTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTitle = e.target.value;
+    setTitle(newTitle || '未命名文档');
+    
+    // 更新文档中的第一个一级标题
+    if (editor) {
+      // 获取文档的第一个节点
+      const firstNode = editor.state.doc.firstChild;
+      
+      if (firstNode) {
+        // 如果第一个节点是一级标题，更新它
+        if (firstNode.type.name === 'heading' && firstNode.attrs.level === 1) {
+          editor.chain().focus().setTextSelection(0).deleteRange({ from: 0, to: firstNode.nodeSize }).run();
+          editor.chain().focus().setNode('heading', { level: 1 }).insertContent(newTitle).run();
+        } else {
+          // 如果第一个节点不是一级标题，在开头插入新标题，并保持原有内容
+          const fragment = editor.state.doc.content;
+          editor.chain()
+            .focus()
+            .clearContent()
+            .setNode('heading', { level: 1 })
+            .insertContent(newTitle)
+            .insertContent({ type: 'paragraph' }) // 插入一个空段落作为分隔
+            .insertContent(fragment)
+            .run();
+        }
+      } else {
+        // 如果文档为空，直接插入标题和一个空段落
+        editor.chain()
+          .focus()
+          .setNode('heading', { level: 1 })
+          .insertContent(newTitle)
+          .insertContent({ type: 'paragraph' })
+          .run();
+      }
+      
+      debouncedAutoSave(editor);
+    }
+  }, [editor, debouncedAutoSave]);
+
   useEffect(() => {
     if (!editor) return;
 
@@ -466,12 +607,7 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
               <input
                 type="text"
                 value={title}
-                onChange={(e) => {
-                  setTitle(e.target.value);
-                  if (editor) {
-                    debouncedAutoSave(editor);
-                  }
-                }}
+                onChange={handleTitleChange}
                 className="text-2xl font-bold text-gray-900 bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-2 py-1"
                 placeholder="输入文档标题"
               />
@@ -481,16 +617,92 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
                 editor={editor} 
                 onLinkClick={handleLinkClick}
                 onSave={handleSave}
+                onTocClick={handleGenerateTocAndTitle}
+                showToc={showToc}
               />
             </div>
           </div>
         </div>
         <div className="pt-[140px] pb-16 min-h-[calc(100vh-180px)] bg-white">
-          <div className="relative">
-            <div className="relative pl-[60px]">
+          <div className="relative max-w-5xl mx-auto">
+            {showToc && (
+              <div className="absolute" style={{ left: '-380px', width: '250px' }}>
+                <div className="bg-gray-50 rounded-lg sticky top-[140px] mt-[38px]">
+                  <div className="px-4 py-4">
+                    <div className="text-xl font-bold mb-4 break-words">{title}</div>
+                    <div className="space-y-2 max-h-[calc(100vh-240px)] overflow-y-auto">
+                      {tableOfContents.map((heading, index) => {
+                        // 计算编号
+                        let prefix = '';
+                        let parentStack = [];
+                        let currentCount = 1;
+                        
+                        // 向前查找同级标题的数量
+                        for (let i = 0; i < index; i++) {
+                          const prevHeading = tableOfContents[i];
+                          
+                          if (prevHeading.level < heading.level) {
+                            // 遇到上级标题，更新父级栈
+                            while (parentStack.length > 0 && parentStack[parentStack.length - 1].level >= prevHeading.level) {
+                              parentStack.pop();
+                            }
+                            parentStack.push({
+                              level: prevHeading.level,
+                              number: i + 1
+                            });
+                            currentCount = 1;
+                          } else if (prevHeading.level === heading.level) {
+                            // 同级标题，计数加1
+                            currentCount++;
+                          }
+                        }
+                        
+                        // 生成编号
+                        if (parentStack.length > 0) {
+                          prefix = parentStack.map(p => p.number).join('.') + '.' + currentCount;
+                        } else {
+                          prefix = currentCount + '.';
+                        }
+                        
+                        return (
+                          <div
+                            key={index}
+                            className="cursor-pointer hover:text-blue-600 text-base py-1 truncate flex items-center gap-0.5"
+                            style={{ paddingLeft: `${(heading.level - 1) * 1}rem` }}
+                            onClick={() => {
+                              const text = heading.text;
+                              let pos = 0;
+                              editor.state.doc.descendants((node: any, nodePos: number) => {
+                                if (node.type.name === 'heading' && node.textContent === text) {
+                                  pos = nodePos;
+                                  return false;
+                                }
+                              });
+                              editor.commands.setTextSelection(pos);
+                              editor.commands.scrollIntoView();
+                            }}
+                          >
+                            <span 
+                              className="inline-block" 
+                              style={{ 
+                                width: heading.level === 1 ? '1.25rem' : heading.level === 2 ? '2rem' : '2.5rem'
+                              }}
+                            >
+                              {prefix}
+                            </span>
+                            <span className="truncate">{heading.text}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="px-6">
               <EditorContent 
                 editor={editor}
-                className="editor-content relative"
+                className="editor-content relative prose prose-sm sm:prose lg:prose-lg xl:prose-2xl focus:outline-none min-h-[calc(100vh-280px)]"
               />
               {!isLinkEditorOpen && (
                 <FloatingAIToolbar 
