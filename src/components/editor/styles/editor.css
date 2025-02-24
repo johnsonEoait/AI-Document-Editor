@@ -130,4 +130,15 @@
 
 .table-context-menu::-webkit-scrollbar-thumb:hover {
   background-color: rgba(0, 0, 0, 0.3);
+}
+
+/* 查找高亮样式 */
+.search-highlight {
+  background-color: rgba(255, 255, 0, 0.3);
+  border-radius: 2px;
+}
+
+.search-highlight-current {
+  background-color: rgba(255, 165, 0, 0.5);
+  border-radius: 2px;
 } 
