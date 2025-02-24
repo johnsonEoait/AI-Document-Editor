@@ -6,7 +6,6 @@ import { Wand2, Send, X, Check, RotateCcw, Loader2 } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
-import { debounce } from 'lodash';
 
 // 扩展 Editor 类型
 declare module '@tiptap/react' {
@@ -28,6 +27,7 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
   const [isLoading, setIsLoading] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [generatedContent, setGeneratedContent] = useState('');
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const selectionRef = useRef<{ from: number; to: number } | null>(null);
   const pluginKey = new PluginKey('aiHighlight');
 
@@ -69,10 +69,6 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
         border-radius: 0.25rem;
         padding: 0.125rem 0;
         border-bottom: 2px solid rgb(59, 130, 246);
-        transition: background-color 0.2s ease;
-      }
-      .ai-processing-highlight:hover {
-        background-color: rgba(59, 130, 246, 0.15);
       }
     `;
     document.head.appendChild(style);
@@ -82,144 +78,150 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
     };
   }, []);
 
-  // 计算工具栏位置的函数
-  const calculatePosition = useCallback((to: number) => {
-    if (!editor) return null;
-
-    const coords = editor.view.coordsAtPos(to);
-    const editorRect = editor.view.dom.getBoundingClientRect();
-    
-    // 确保工具栏不会超出编辑器边界
-    const x = Math.min(
-      Math.max(coords.left, editorRect.left),
-      editorRect.right - 400 // 假设工具栏宽度为 400px
-    );
-    
-    const y = Math.min(
-      coords.bottom + 10,
-      editorRect.bottom - 300 // 假设工具栏最大高度为 300px
-    );
-
-    return { x, y };
-  }, [editor]);
-
   // 添加手动触发方法
   const showToolbar = useCallback(() => {
-    if (!editor) {
-      console.log('showToolbar: editor not available');
-      return;
-    }
+    if (!editor) return;
 
     const { state } = editor;
     const { selection } = state;
-    const { empty, ranges } = selection;
+    const { ranges } = selection;
 
-    console.log('showToolbar: Selection state:', {
-      empty,
-      ranges: ranges.map(range => ({
-        from: range.$from.pos,
-        to: range.$to.pos,
-        text: state.doc.textBetween(range.$from.pos, range.$to.pos)
-      }))
-    });
+    const hasSelection = !selection.empty;
+    let from = 0;
+    let to = 0;
 
-    let position;
-    if (empty) {
-      // 如果没有选中内容，使用当前光标位置
-      console.log('showToolbar: Using cursor position');
-      position = calculatePosition(selection.from);
-    } else {
-      // 如果有选中内容，检查是否有效
-      const from = Math.min(...ranges.map((range) => range.$from.pos));
-      const to = Math.max(...ranges.map((range) => range.$to.pos));
+    if (hasSelection) {
+      const node = editor.state.doc.nodeAt(selection.from);
+      if (node && (node.type.name === 'customImage' || node.type.name === 'table')) return;
+
+      from = Math.min(...ranges.map((range) => range.$from.pos));
+      to = Math.max(...ranges.map((range) => range.$to.pos));
       
-      if (from === to) {
-        console.log('showToolbar: Invalid selection range');
-        return;
-      }
-
-      // 检查选中的节点类型
-      const node = editor.state.doc.nodeAt(from);
-      console.log('showToolbar: Selected node type:', node?.type.name);
-      
-      if (node && (node.type.name === 'customImage' || node.type.name === 'table')) {
-        console.log('showToolbar: Invalid node type');
-        return;
-      }
+      if (from === to) return;
 
       // 保存选中范围并触发高亮更新
       selectionRef.current = { from, to };
       editor.view.dispatch(editor.state.tr);
-      position = calculatePosition(to);
+    } else {
+      // 清除之前的选中范围
+      selectionRef.current = null;
+      editor.view.dispatch(editor.state.tr);
     }
 
-    // 设置位置并显示工具栏
-    if (position) {
-      console.log('showToolbar: Setting new position and showing toolbar');
-      setPosition(position);
-      setIsVisible(true);
-    } else {
-      console.log('showToolbar: Failed to calculate position');
-    }
-  }, [editor, calculatePosition]);
+    // 计算位置：如果有选中文本，显示在文本末尾，否则显示在光标位置
+    const coords = hasSelection ? 
+      editor.view.coordsAtPos(to) : 
+      editor.view.coordsAtPos(selection.from);
+    
+    setPosition({
+      x: coords.left,
+      y: coords.bottom + 10,
+    });
+
+    setIsVisible(true);
+  }, [editor]);
 
   // 暴露方法给外部使用
   useEffect(() => {
     if (!editor) return;
     
-    console.log('Registering aiToolbar.show method');
+    // 将方法挂载到 editor 上，以便外部调用
     editor.aiToolbar = {
       show: showToolbar
     };
 
     return () => {
-      console.log('Unregistering aiToolbar.show method');
       delete editor.aiToolbar;
     };
   }, [editor, showToolbar]);
 
-  // 监听滚动事件，更新工具栏位置
-  useEffect(() => {
-    if (!editor || !isVisible) return;
+  const checkSelectionAndUpdatePosition = useCallback(() => {
+    if (!editor) return;
 
-    const handleScroll = () => {
-      if (selectionRef.current) {
-        const { to } = selectionRef.current;
-        const newPosition = calculatePosition(to);
-        if (newPosition) {
-          setPosition(newPosition);
-        }
+    const { state } = editor;
+    const { selection } = state;
+    const { ranges } = selection;
+
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    const hasSelection = !selection.empty;
+
+    if (!hasSelection) {
+      setIsVisible(false);
+      selectionRef.current = null;
+      editor.view.dispatch(editor.state.tr);
+      return;
+    }
+
+    const node = editor.state.doc.nodeAt(selection.from);
+    if (node && (node.type.name === 'customImage' || node.type.name === 'table')) {
+      setIsVisible(false);
+      selectionRef.current = null;
+      editor.view.dispatch(editor.state.tr);
+      return;
+    }
+
+    const from = Math.min(...ranges.map((range) => range.$from.pos));
+    const to = Math.max(...ranges.map((range) => range.$to.pos));
+    
+    if (from === to) {
+      setIsVisible(false);
+      selectionRef.current = null;
+      editor.view.dispatch(editor.state.tr);
+      return;
+    }
+
+    // 保存选中范围并触发高亮更新
+    selectionRef.current = { from, to };
+    editor.view.dispatch(editor.state.tr);
+
+    const coords = editor.view.coordsAtPos(to);
+    
+    setPosition({
+      x: coords.left,
+      y: coords.bottom + 10,
+    });
+
+    timeoutRef.current = setTimeout(() => {
+      setIsVisible(true);
+    }, 200);
+  }, [editor]);
+
+  const handleMouseUp = useCallback(() => {
+    checkSelectionAndUpdatePosition();
+  }, [checkSelectionAndUpdatePosition]);
+
+  useEffect(() => {
+    if (!editor) return;
+    const editorElement = editor.view.dom;
+    editorElement.addEventListener('mouseup', handleMouseUp);
+    
+    return () => {
+      editorElement.removeEventListener('mouseup', handleMouseUp);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [editor, handleMouseUp]);
+
+  useEffect(() => {
+    if (!editor) return;
+
+    const handleSelectionUpdate = () => {
+      // 只在没有保存的选中范围时隐藏工具栏
+      if (!selectionRef.current) {
+        setIsVisible(false);
       }
     };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    editor.view.dom.addEventListener('scroll', handleScroll, { passive: true });
+    editor.on('selectionUpdate', handleSelectionUpdate);
     
     return () => {
-      window.removeEventListener('scroll', handleScroll);
-      editor.view.dom.removeEventListener('scroll', handleScroll);
+      editor.off('selectionUpdate', handleSelectionUpdate);
     };
-  }, [editor, isVisible, calculatePosition]);
-
-  // 监听选中内容变化，如果选中内容消失则关闭工具栏
-  useEffect(() => {
-    if (!editor || !isVisible) return;
-
-    const handleSelectionChange = () => {
-      const { state } = editor;
-      const { selection } = state;
-      
-      if (selection.empty) {
-        handleCancel();
-      }
-    };
-
-    editor.on('selectionUpdate', handleSelectionChange);
-    
-    return () => {
-      editor.off('selectionUpdate', handleSelectionChange);
-    };
-  }, [editor, isVisible]);
+  }, [editor]);
 
   const handleInsertContent = () => {
     if (!generatedContent) return;
@@ -374,8 +376,6 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
       style={{
         left: position.x,
         top: position.y,
-        transform: 'translateY(0)',
-        transition: 'transform 0.2s ease, opacity 0.2s ease',
       }}
     >
       <Popover.Root open={isVisible} onOpenChange={handleCancel}>
