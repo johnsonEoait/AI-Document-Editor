@@ -277,34 +277,25 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
     ],
     content: loadSavedContent()?.content || content,
     onUpdate: ({ editor }) => {
-      const markdown = editor.storage.markdown.getMarkdown();
-      onChange?.(markdown);
-      const text = editor.state.doc.textContent;
-      setWordCount(text.length);
-      
-      // 获取第一个节点的文本作为标题
-      const firstNode = editor.state.doc.firstChild;
-      if (firstNode && firstNode.type.name === 'heading' && firstNode.attrs.level === 1) {
-        setTitle(firstNode.textContent);
-      }
-      
-      // 每次内容更新时都更新目录
-      updateTableOfContents(editor);
-      
-      // 如果第一个节点不是标题，自动将其转换为标题
-      if (firstNode && firstNode.type.name !== 'heading') {
-        const content = firstNode.textContent;
-        editor.chain()
-          .focus()
-          .setTextSelection(0)
-          .deleteRange({ from: 0, to: firstNode.nodeSize })
-          .setNode('heading', { level: 1 })
-          .insertContent(content)
-          .run();
-      }
-      
-      // 触发自动保存
-      debouncedAutoSave(editor);
+      // 使用 setTimeout 来避免递归调用
+      setTimeout(() => {
+        const markdown = editor.storage.markdown.getMarkdown();
+        onChange?.(markdown);
+        const text = editor.state.doc.textContent;
+        setWordCount(text.length);
+        
+        // 获取第一个节点的文本作为标题
+        const firstNode = editor.state.doc.firstChild;
+        if (firstNode && firstNode.type.name === 'heading' && firstNode.attrs.level === 1) {
+          setTitle(firstNode.textContent);
+        }
+        
+        // 每次内容更新时都更新目录
+        updateTableOfContents(editor);
+        
+        // 触发自动保存
+        debouncedAutoSave(editor);
+      }, 0);
     },
     editable: true,
     injectCSS: false,
@@ -465,43 +456,13 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
     }
   }, [editor, showToc, updateTableOfContents]);
 
-  // 修改输入框的onChange处理
+  // 修改标题输入框的onChange处理
   const handleTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
     setTitle(newTitle || '未命名文档');
     
-    // 更新文档中的第一个一级标题
+    // 保存标题到本地存储
     if (editor) {
-      // 获取文档的第一个节点
-      const firstNode = editor.state.doc.firstChild;
-      
-      if (firstNode) {
-        // 如果第一个节点是一级标题，更新它
-        if (firstNode.type.name === 'heading' && firstNode.attrs.level === 1) {
-          editor.chain().focus().setTextSelection(0).deleteRange({ from: 0, to: firstNode.nodeSize }).run();
-          editor.chain().focus().setNode('heading', { level: 1 }).insertContent(newTitle).run();
-        } else {
-          // 如果第一个节点不是一级标题，在开头插入新标题，并保持原有内容
-          const fragment = editor.state.doc.content;
-          editor.chain()
-            .focus()
-            .clearContent()
-            .setNode('heading', { level: 1 })
-            .insertContent(newTitle)
-            .insertContent({ type: 'paragraph' }) // 插入一个空段落作为分隔
-            .insertContent(fragment)
-            .run();
-        }
-      } else {
-        // 如果文档为空，直接插入标题和一个空段落
-        editor.chain()
-          .focus()
-          .setNode('heading', { level: 1 })
-          .insertContent(newTitle)
-          .insertContent({ type: 'paragraph' })
-          .run();
-      }
-      
       debouncedAutoSave(editor);
     }
   }, [editor, debouncedAutoSave]);

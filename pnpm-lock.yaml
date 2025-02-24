@@ -101,18 +101,12 @@ importers:
       '@types/markdown-it':
         specifier: ^14.1.2
         version: 14.1.2
-      clsx:
-        specifier: ^2.1.1
-        version: 2.1.1
       docx:
         specifier: ^9.2.0
         version: 9.2.0
       docx-preview:
         specifier: ^0.3.4
         version: 0.3.4
-      framer-motion:
-        specifier: ^12.4.7
-        version: 12.4.7(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       html-docx-js:
         specifier: ^0.3.1
         version: 0.3.1
@@ -167,9 +161,6 @@ importers:
       react-hot-toast:
         specifier: ^2.5.2
         version: 2.5.2(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
-      tailwind-merge:
-        specifier: ^3.0.2
-        version: 3.0.2
       tippy.js:
         specifier: ^6.3.7
         version: 6.3.7
@@ -201,15 +192,24 @@ importers:
       '@types/react-dom':
         specifier: ^19
         version: 19.0.4(@types/react@19.0.10)
+      clsx:
+        specifier: ^2.1.1
+        version: 2.1.1
       eslint:
         specifier: ^9
         version: 9.21.0(jiti@1.21.7)
       eslint-config-next:
         specifier: 15.1.7
         version: 15.1.7(eslint@9.21.0(jiti@1.21.7))(typescript@5.7.3)
+      framer-motion:
+        specifier: ^12.4.7
+        version: 12.4.7(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       postcss:
         specifier: ^8
         version: 8.5.3
+      tailwind-merge:
+        specifier: ^3.0.2
+        version: 3.0.2
       tailwindcss:
         specifier: ^3.4.1
         version: 3.4.17

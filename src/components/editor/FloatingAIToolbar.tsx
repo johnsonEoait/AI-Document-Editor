@@ -2,7 +2,7 @@
 
 import { Editor } from '@tiptap/react';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Wand2, Send } from 'lucide-react';
+import { Wand2, Send, X, Check, RotateCcw, Loader2 } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
@@ -26,10 +26,10 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isLoading, setIsLoading] = useState(false);
   const [prompt, setPrompt] = useState('');
+  const [generatedContent, setGeneratedContent] = useState('');
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const selectionRef = useRef<{ from: number; to: number } | null>(null);
   const pluginKey = new PluginKey('aiHighlight');
-  const [streamContent, setStreamContent] = useState('');
 
   // 创建高亮插件
   useEffect(() => {
@@ -223,6 +223,72 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
     };
   }, [editor]);
 
+  const handleInsertContent = () => {
+    if (!generatedContent) return;
+
+    // 将文本按行分割并转换为节点数组
+    const nodes = generatedContent.split('\n').map(line => {
+      if (!line.trim()) {
+        return {
+          type: 'paragraph'
+        };
+      }
+      return {
+        type: 'paragraph',
+        content: [{
+          type: 'text',
+          text: line
+        }]
+      };
+    });
+
+    if (selectionRef.current) {
+      const { from, to } = selectionRef.current;
+      editor
+        .chain()
+        .focus()
+        .deleteRange({ from, to })
+        .insertContent({
+          type: 'doc',
+          content: nodes
+        })
+        .run();
+    } else {
+      editor
+        .chain()
+        .focus()
+        .insertContent({
+          type: 'doc',
+          content: nodes
+        })
+        .run();
+    }
+
+    // 重置状态
+    setGeneratedContent('');
+    setIsVisible(false);
+    setPrompt('');
+    
+    // 延迟清除选中范围和高亮，避免递归更新
+    setTimeout(() => {
+      selectionRef.current = null;
+      editor.view.dispatch(editor.state.tr);
+    }, 0);
+  };
+
+  const handleRegenerate = () => {
+    setGeneratedContent('');
+    handleSubmit();
+  };
+
+  const handleCancel = () => {
+    setGeneratedContent('');
+    setIsVisible(false);
+    setPrompt('');
+    selectionRef.current = null;
+    editor.view.dispatch(editor.state.tr);
+  };
+
   const handleSubmit = async () => {
     let text = '';
     let insertPosition = { from: 0, to: 0 };
@@ -243,10 +309,9 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
       return;
     }
 
-    // 在发送请求前就禁用编辑器
-    editor.setEditable(false);
     setIsLoading(true);
     onLoadingChange(true);
+    setGeneratedContent(''); // 清空之前的内容
 
     try {
       const response = await fetch('/api/ai/agent', {
@@ -269,158 +334,157 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
         throw new Error('返回的响应没有内容');
       }
 
-      // 处理流式响应
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let fullContent = '';
+      let buffer = '';
 
+      // 流式显示内容
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        fullContent += decoder.decode(value);
+        
+        const chunk = decoder.decode(value);
+        buffer += chunk;
+
+        // 只在完整的行结束时更新内容
+        if (buffer.includes('\n')) {
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || ''; // 保留最后一个不完整的行
+          setGeneratedContent(prev => prev + lines.join('\n') + '\n');
+        }
       }
 
-      // 处理内容，移除可能的markdown格式
-      const processedContent = fullContent
-        .replace(/^```[\s\S]*?```/gm, '') // 移除代码块
-        .replace(/`([^`]+)`/g, '$1')      // 移除内联代码
-        .replace(/\*\*([^*]+)\*\*/g, '$1') // 移除加粗
-        .replace(/\*([^*]+)\*/g, '$1')     // 移除斜体
-        .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // 移除链接
-        .replace(/#{1,6}\s/g, '')         // 移除标题标记
-        .replace(/^\s*[-*+]\s/gm, '')     // 移除列表标记
-        .replace(/^\s*\d+\.\s/gm, '')     // 移除有序列表标记
-        .trim();
-
-      // 收集完所有内容后，一次性插入
-      if (selectionRef.current) {
-        editor
-          .chain()
-          .focus()
-          .deleteRange(insertPosition)
-          .insertContent(processedContent)
-          .run();
-      } else {
-        editor
-          .chain()
-          .focus()
-          .insertContent(processedContent)
-          .run();
+      // 处理剩余的buffer
+      if (buffer) {
+        setGeneratedContent(prev => prev + buffer);
       }
 
     } catch (error: any) {
       console.error('AI 处理出错:', error);
       alert(error.message || 'AI 处理出错，请稍后重试');
     } finally {
-      // 恢复编辑器可编辑状态
-      editor.setEditable(true);
       setIsLoading(false);
       onLoadingChange(false);
-      setIsVisible(false);
-      setPrompt('');
-      selectionRef.current = null;
-      // 清除高亮
-      editor.view.dispatch(editor.state.tr);
     }
-  };
-
-  const handleClose = () => {
-    setIsVisible(false);
-    selectionRef.current = null;
-    // 清除高亮
-    editor.view.dispatch(editor.state.tr);
   };
 
   if (!isVisible) return null;
 
   return (
-    <>
-      {isLoading && (
-        <div 
-          className="fixed inset-0 bg-transparent z-[999]" 
-          style={{ cursor: 'not-allowed' }}
-          onClick={(e) => e.preventDefault()}
-          onMouseDown={(e) => e.preventDefault()}
-        />
-      )}
-      <div
-        className="fixed z-50"
-        style={{
-          left: position.x,
-          top: position.y,
-        }}
-      >
-        <Popover.Root open={isVisible} onOpenChange={handleClose}>
-          <Popover.Trigger asChild>
-            <button
-              className="flex items-center gap-2 px-3 py-2 text-sm bg-white rounded-lg shadow-lg border border-gray-200 hover:bg-gray-50"
-              onMouseDown={(e) => {
-                e.preventDefault();
-              }}
-            >
-              <Wand2 className="w-4 h-4" />
-              AI 助手
-            </button>
-          </Popover.Trigger>
-          <Popover.Portal>
-            <Popover.Content
-              className="bg-white rounded-lg shadow-lg border border-gray-200 p-4 w-[300px]"
-              sideOffset={5}
-              onOpenAutoFocus={(e) => {
-                e.preventDefault();
-              }}
-              onPointerDownOutside={(e) => {
-                // 防止点击外部时清除选中
-                e.preventDefault();
-              }}
-            >
-              <div className="space-y-4">
-                <div className="text-sm font-medium">
-                  {selectionRef.current ? '处理选中的文本' : '在此处插入 AI 生成的内容'}
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    placeholder={selectionRef.current ? 
-                      "例如：翻译成英文、总结要点、改写为正式语气..." : 
-                      "例如：写一段介绍、生成大纲、续写内容..."
-                    }
-                    className="flex-1 px-3 py-1 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    disabled={isLoading}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSubmit();
-                      }
-                    }}
-                    onMouseDown={(e) => {
-                      e.stopPropagation();
-                    }}
-                  />
-                  <button
-                    onClick={handleSubmit}
-                    disabled={isLoading}
-                    className="p-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                    onMouseDown={(e) => {
+    <div
+      className="fixed z-50"
+      style={{
+        left: position.x,
+        top: position.y,
+      }}
+    >
+      <Popover.Root open={isVisible} onOpenChange={handleCancel}>
+        <Popover.Trigger asChild>
+          <button
+            className="flex items-center gap-2 px-3 py-2 text-sm bg-white rounded-lg shadow-lg border border-gray-200 hover:bg-gray-50"
+            onMouseDown={(e) => {
+              e.preventDefault();
+            }}
+          >
+            <Wand2 className="w-4 h-4" />
+            AI 助手
+          </button>
+        </Popover.Trigger>
+        <Popover.Portal>
+          <Popover.Content
+            className="bg-white rounded-lg shadow-lg border border-gray-200 w-[400px] max-h-[600px] overflow-hidden flex flex-col"
+            sideOffset={5}
+            onOpenAutoFocus={(e) => {
+              e.preventDefault();
+            }}
+            onPointerDownOutside={(e) => {
+              e.preventDefault();
+            }}
+          >
+            <div className="p-4 border-b border-gray-200">
+              <div className="text-sm font-medium mb-2">
+                {selectionRef.current ? '处理选中的文本' : '在此处插入 AI 生成的内容'}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder={selectionRef.current ? 
+                    "例如：翻译成英文、总结要点、改写为正式语气..." : 
+                    "例如：写一段介绍、生成大纲、续写内容..."
+                  }
+                  className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={isLoading}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
-                    }}
+                      handleSubmit();
+                    }
+                  }}
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                  }}
+                />
+                <button
+                  onClick={handleSubmit}
+                  disabled={isLoading}
+                  className="p-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                  }}
+                >
+                  {isLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {generatedContent && (
+              <>
+                <div className="flex-1 p-4 overflow-y-auto">
+                  <div className="text-sm whitespace-pre-wrap">
+                    {generatedContent}
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 p-4 border-t border-gray-200 bg-gray-50">
+                  <button
+                    onClick={handleCancel}
+                    className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 bg-white rounded border border-gray-200 hover:bg-gray-50"
                   >
-                    <Send className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                    <X className="w-4 h-4" />
+                    放弃
+                  </button>
+                  <button
+                    onClick={handleRegenerate}
+                    className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 bg-white rounded border border-gray-200 hover:bg-gray-50"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    重新生成
+                  </button>
+                  <button
+                    onClick={handleInsertContent}
+                    className="flex items-center gap-1 px-3 py-1.5 text-sm text-white bg-blue-500 rounded hover:bg-blue-600"
+                  >
+                    <Check className="w-4 h-4" />
+                    插入
                   </button>
                 </div>
-                <div className="text-xs text-gray-500">
-                  提示：{selectionRef.current ? 
-                    "可以输入任何文本处理指令，AI 会智能理解并执行。" : 
-                    "可以让 AI 生成新内容，或者基于上下文续写。"
-                  }按下 Alt + / 也可以快速打开 AI 助手。
-                </div>
-              </div>
-            </Popover.Content>
-          </Popover.Portal>
-        </Popover.Root>
-      </div>
-    </>
+              </>
+            )}
+
+            <div className="p-4 text-xs text-gray-500 border-t border-gray-200">
+              提示：{selectionRef.current ? 
+                "可以输入任何文本处理指令，AI 会智能理解并执行。" : 
+                "可以让 AI 生成新内容，或者基于上下文续写。"
+              }按下 Alt + / 也可以快速打开 AI 助手。
+            </div>
+          </Popover.Content>
+        </Popover.Portal>
+      </Popover.Root>
+    </div>
   );
 }; 
