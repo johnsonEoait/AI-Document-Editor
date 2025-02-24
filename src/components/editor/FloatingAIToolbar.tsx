@@ -272,35 +272,42 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
       // 处理流式响应
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-
-      // 第一次插入时删除选中内容
-      let isFirstChunk = true;
+      let fullContent = '';
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+        fullContent += decoder.decode(value);
+      }
 
-        const chunk = decoder.decode(value);
-        
-        if (isFirstChunk) {
-          // 第一次收到内容时,删除选中的文本(如果有)
-          if (selectionRef.current) {
-            editor
-              .chain()
-              .focus()
-              .deleteRange(insertPosition)
-              .run();
-          }
-          isFirstChunk = false;
-        }
+      // 处理内容，移除可能的markdown格式
+      const processedContent = fullContent
+        .replace(/^```[\s\S]*?```/gm, '') // 移除代码块
+        .replace(/`([^`]+)`/g, '$1')      // 移除内联代码
+        .replace(/\*\*([^*]+)\*\*/g, '$1') // 移除加粗
+        .replace(/\*([^*]+)\*/g, '$1')     // 移除斜体
+        .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // 移除链接
+        .replace(/#{1,6}\s/g, '')         // 移除标题标记
+        .replace(/^\s*[-*+]\s/gm, '')     // 移除列表标记
+        .replace(/^\s*\d+\.\s/gm, '')     // 移除有序列表标记
+        .trim();
 
-        // 在当前位置插入新的内容
+      // 收集完所有内容后，一次性插入
+      if (selectionRef.current) {
         editor
           .chain()
           .focus()
-          .insertContent(chunk)
+          .deleteRange(insertPosition)
+          .insertContent(processedContent)
+          .run();
+      } else {
+        editor
+          .chain()
+          .focus()
+          .insertContent(processedContent)
           .run();
       }
+
     } catch (error: any) {
       console.error('AI 处理出错:', error);
       alert(error.message || 'AI 处理出错，请稍后重试');
