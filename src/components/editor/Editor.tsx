@@ -525,7 +525,7 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
         onCancel={() => setIsConfirmDialogOpen(false)}
         position={dialogPosition ?? undefined}
       />
-      <div className="max-w-5xl mx-auto relative editor-container">
+      <div className="max-w-7xl mx-auto relative editor-container">
         {/* 全屏遮罩层 */}
         {isEditorDisabled && (
           <div 
@@ -563,7 +563,7 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
           </div>
         )}
         <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b shadow-sm">
-          <div className="max-w-5xl mx-auto">
+          <div className="max-w-7xl mx-auto">
             <div className="flex items-center justify-between py-4 px-6">
               <input
                 type="text"

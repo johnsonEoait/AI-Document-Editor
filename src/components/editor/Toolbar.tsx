@@ -190,7 +190,7 @@ export const EditorToolbar = ({ editor, onLinkClick, onSave, onTocClick, showToc
         accept="image/*"
         onChange={handleFileChange}
       />
-      <Toolbar.Root className="flex flex-wrap gap-0.5 p-2">
+      <Toolbar.Root className="flex flex-nowrap gap-0.5 p-2 overflow-x-auto whitespace-nowrap">
         <ToolbarGroup>
           <ToolbarButton
             onClick={onTocClick}
@@ -205,13 +205,13 @@ export const EditorToolbar = ({ editor, onLinkClick, onSave, onTocClick, showToc
           <DropdownMenu.Root>
             <DropdownMenu.Trigger asChild>
               <button className="flex items-center gap-0.5 p-2 rounded hover:bg-gray-100 transition-colors">
-                {editor.isActive('heading', { level: 1 }) && <Heading1 className="w-4 h-4" />}
-                {editor.isActive('heading', { level: 2 }) && <Heading2 className="w-4 h-4" />}
-                {editor.isActive('heading', { level: 3 }) && <Heading3 className="w-4 h-4" />}
-                {editor.isActive('heading', { level: 4 }) && <Heading4 className="w-4 h-4" />}
-                {editor.isActive('heading', { level: 5 }) && <Heading5 className="w-4 h-4" />}
-                {editor.isActive('heading', { level: 6 }) && <Heading6 className="w-4 h-4" />}
-                {!editor.isActive('heading') && <Text className="w-4 h-4" />}
+                {editor.isActive('heading', { level: 1 }) && <Type className="w-4 h-4" />}
+                {editor.isActive('heading', { level: 2 }) && <Type className="w-4 h-4" />}
+                {editor.isActive('heading', { level: 3 }) && <Type className="w-4 h-4" />}
+                {editor.isActive('heading', { level: 4 }) && <Type className="w-4 h-4" />}
+                {editor.isActive('heading', { level: 5 }) && <Type className="w-4 h-4" />}
+                {editor.isActive('heading', { level: 6 }) && <Type className="w-4 h-4" />}
+                {!editor.isActive('heading') && <Type className="w-4 h-4" />}
                 <ChevronDown className="w-3 h-3 opacity-50" />
               </button>
             </DropdownMenu.Trigger>
