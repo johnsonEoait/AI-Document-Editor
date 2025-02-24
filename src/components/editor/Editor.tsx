@@ -289,24 +289,6 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
       attributes: {
         class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl focus:outline-none min-h-[500px] px-8 py-6 markdown-body relative',
       },
-      handleDOMEvents: {
-        blur: (view, event) => {
-          // 在失去焦点时清除选区
-          if (view.state.selection.empty) {
-            return false;
-          }
-          view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, view.state.selection.from)));
-          return true;
-        },
-        mousedown: (view, event) => {
-          // 如果点击的是编辑器区域外的空白处，清除选区
-          if (event.target === view.dom || event.target === view.dom.parentElement) {
-            view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, 0)));
-            return true;
-          }
-          return false;
-        }
-      }
     },
     parseOptions: {
       preserveWhitespace: 'full',
@@ -464,7 +446,12 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
   const handleTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
     setTitle(newTitle || '未命名文档');
-  }, []);
+    
+    // 保存标题到本地存储
+    if (editor) {
+      debouncedAutoSave(editor);
+    }
+  }, [editor, debouncedAutoSave]);
 
   useEffect(() => {
     if (!editor) return;
@@ -566,10 +553,10 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
             <div className="flex items-center justify-between py-4 px-6">
               <input
                 type="text"
-                value={title === '未命名文档' ? '' : title}
+                value={title}
                 onChange={handleTitleChange}
-                className="text-2xl font-bold text-gray-900 bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-2 py-1 w-full placeholder-gray-300"
-                placeholder="未命名文档"
+                className="text-2xl font-bold text-gray-900 bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-2 py-1"
+                placeholder="输入文档标题"
               />
             </div>
             <div className="border-b">
