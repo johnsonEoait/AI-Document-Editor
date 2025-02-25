@@ -128,6 +128,8 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
       // 如果没有选中内容，使用当前光标位置
       console.log('showToolbar: Using cursor position');
       position = calculatePosition(selection.from);
+      // 设置插入位置为当前光标位置
+      selectionRef.current = { from: selection.from, to: selection.from };
     } else {
       // 如果有选中内容，检查是否有效
       const from = Math.min(...ranges.map((range) => range.$from.pos));
@@ -290,12 +292,21 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
   const handleSubmit = async () => {
     let text = '';
     let insertPosition = { from: 0, to: 0 };
+    let isGenerating = false; // 标记是否为生成模式
     
     if (selectionRef.current) {
       const { from, to } = selectionRef.current;
-      text = editor.state.doc.textBetween(from, to, '\n');
-      insertPosition = { from, to };
+      // 如果 from 和 to 相同，说明是空状态下的光标位置
+      if (from === to) {
+        isGenerating = true;
+        insertPosition = { from, to };
+      } else {
+        // 有选中内容，获取选中的文本
+        text = editor.state.doc.textBetween(from, to, '\n');
+        insertPosition = { from, to };
+      }
     } else {
+      isGenerating = true;
       insertPosition = { 
         from: editor.state.selection.from,
         to: editor.state.selection.from 
@@ -319,7 +330,8 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
         },
         body: JSON.stringify({ 
           text,
-          prompt: prompt.trim()
+          prompt: prompt.trim(),
+          mode: isGenerating ? 'generate' : 'process' // 添加模式标记
         }),
       });
 
@@ -403,16 +415,18 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
           >
             <div className="p-4 border-b border-gray-200">
               <div className="text-sm font-medium mb-2">
-                {selectionRef.current ? '处理选中的文本' : '在此处插入 AI 生成的内容'}
+                {selectionRef.current && selectionRef.current.from !== selectionRef.current.to
+                  ? '处理选中的文本'
+                  : '在此处插入 AI 生成的内容'}
               </div>
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
-                  placeholder={selectionRef.current ? 
-                    "例如：翻译成英文、总结要点、改写为正式语气..." : 
-                    "例如：写一段介绍、生成大纲、续写内容..."
+                  placeholder={selectionRef.current && selectionRef.current.from !== selectionRef.current.to
+                    ? "例如：翻译成英文、总结要点、改写为正式语气..."
+                    : "例如：写一段介绍、生成大纲、续写内容..."
                   }
                   className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   disabled={isLoading}
@@ -477,9 +491,9 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
             )}
 
             <div className="p-4 text-xs text-gray-500 border-t border-gray-200">
-              提示：{selectionRef.current ? 
-                "可以输入任何文本处理指令，AI 会智能理解并执行。" : 
-                "可以让 AI 生成新内容，或者基于上下文续写。"
+              提示：{selectionRef.current && selectionRef.current.from !== selectionRef.current.to
+                ? "可以输入任何文本处理指令，AI 会智能理解并执行。"
+                : "可以让 AI 生成新内容，或者基于上下文续写。"
               }按下 Alt + / 也可以快速打开 AI 助手。
             </div>
           </Popover.Content>
