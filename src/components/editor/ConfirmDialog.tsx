@@ -1,8 +1,9 @@
 import { X } from 'lucide-react';
+import { useState } from 'react';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
-  onConfirm: () => void;
+  onConfirm: (includeTitle: boolean) => void;
   onCancel: () => void;
   position?: {
     x: number;
@@ -11,6 +12,8 @@ interface ConfirmDialogProps {
 }
 
 export const ConfirmDialog = ({ isOpen, onConfirm, onCancel, position }: ConfirmDialogProps) => {
+  const [includeTitle, setIncludeTitle] = useState(false);
+  
   if (!isOpen) return null;
 
   return (
@@ -31,6 +34,20 @@ export const ConfirmDialog = ({ isOpen, onConfirm, onCancel, position }: Confirm
         </button>
       </div>
       <p className="text-sm text-gray-500 mb-4">是否确定下载文档？</p>
+      
+      <div className="flex items-center mb-4">
+        <input
+          type="checkbox"
+          id="include-title"
+          checked={includeTitle}
+          onChange={(e) => setIncludeTitle(e.target.checked)}
+          className="w-4 h-4 text-black border-gray-300 rounded focus:ring-black"
+        />
+        <label htmlFor="include-title" className="ml-2 text-sm text-gray-600">
+          在文档中包含标题
+        </label>
+      </div>
+      
       <div className="flex justify-end gap-2">
         <button
           onClick={onCancel}
@@ -39,7 +56,7 @@ export const ConfirmDialog = ({ isOpen, onConfirm, onCancel, position }: Confirm
           取消
         </button>
         <button
-          onClick={onConfirm}
+          onClick={() => onConfirm(includeTitle)}
           className="px-3 py-1.5 text-sm text-white bg-black hover:bg-gray-900 rounded transition-colors"
         >
           确定

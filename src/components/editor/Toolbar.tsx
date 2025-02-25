@@ -33,6 +33,7 @@ import {
   Heading2,
   Heading3,
   Wand2,
+  FileText,
 } from 'lucide-react';
 import { Heading4, Heading5, Heading6 } from './extensions/BlockHandle';
 import * as Popover from '@radix-ui/react-popover';
@@ -50,6 +51,7 @@ interface EditorToolbarProps {
   onSave: (event: React.MouseEvent<HTMLButtonElement>) => void;
   onTocClick: () => void;
   showToc: boolean;
+  onSetTitleFromH1?: () => void;
 }
 
 const TableSelector = ({ onSelect }: { onSelect: (rows: number, cols: number) => void }) => {
@@ -112,7 +114,7 @@ const TableSelector = ({ onSelect }: { onSelect: (rows: number, cols: number) =>
   );
 };
 
-export const EditorToolbar = ({ editor, onLinkClick, onSave, onTocClick, showToc }: EditorToolbarProps) => {
+export const EditorToolbar = ({ editor, onLinkClick, onSave, onTocClick, showToc, onSetTitleFromH1 }: EditorToolbarProps) => {
   if (!editor) {
     return null;
   }
@@ -319,10 +321,21 @@ export const EditorToolbar = ({ editor, onLinkClick, onSave, onTocClick, showToc
               >
                 <div className="grid grid-cols-5 gap-1">
                   {[
-                    '#ffeb3b', '#ffd700', '#ffa500', '#ff7f50', '#ff1493',
-                    '#90ee90', '#98fb98', '#00fa9a', '#00ffff', '#87ceeb',
-                    '#e6e6fa', '#dda0dd', '#ee82ee', '#da70d6', '#ffc0cb',
-                    '#f0e68c', '#deb887', '#d2b48c', '#bc8f8f', '#f5f5f5',
+                    '#ffff00', // yellow
+                    '#00ff00', // green
+                    '#00ffff', // cyan
+                    '#ff00ff', // magenta
+                    '#0000ff', // blue
+                    '#ff0000', // red
+                    '#000080', // darkBlue
+                    '#008080', // darkCyan
+                    '#008000', // darkGreen
+                    '#800080', // darkMagenta
+                    '#800000', // darkRed
+                    '#808000', // darkYellow
+                    '#808080', // darkGray
+                    '#c0c0c0', // lightGray
+                    '#000000', // black
                   ].map((color) => (
                     <button
                       key={color}
@@ -333,6 +346,9 @@ export const EditorToolbar = ({ editor, onLinkClick, onSave, onTocClick, showToc
                       }}
                     />
                   ))}
+                </div>
+                <div className="mt-2 text-xs text-gray-500 text-center">
+                  使用 Office 兼容的高亮颜色
                 </div>
                 <button
                   className="w-full mt-2 px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded"
@@ -522,6 +538,14 @@ export const EditorToolbar = ({ editor, onLinkClick, onSave, onTocClick, showToc
           >
             <Wand2 className="w-4 h-4" />
           </ToolbarButton>
+          {onSetTitleFromH1 && (
+            <ToolbarButton
+              onClick={() => onSetTitleFromH1()}
+              title="将当前一级标题设为文档标题"
+            >
+              <FileText className="w-4 h-4" />
+            </ToolbarButton>
+          )}
           <ToolbarButton
             onClick={(e) => onSave(e)}
             title="导出文档"
