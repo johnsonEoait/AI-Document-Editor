@@ -22,18 +22,18 @@ import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import { EditorToolbar } from './Toolbar';
 import { FloatingAIToolbar } from './FloatingAIToolbar';
-import { SlashCommands } from './SlashCommands';
-import { CustomImage } from './CustomImage';
-import { CustomHighlight } from './CustomHighlight';
-import { FontSize } from './FontSize';
+import { SlashCommands } from './utils/SlashCommands';
+import { CustomImage } from './utils/CustomImage';
+import { CustomHighlight } from './utils/CustomHighlight';
+import { FontSize } from './utils/FontSize';
 import { InlineLinkEditor } from './InlineLinkEditor';
 import { useState, useCallback, useEffect } from 'react';
 import { ConfirmDialog } from './ConfirmDialog';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table as DocxTable, TableRow as DocxTableRow, TableCell as DocxTableCell, BorderStyle, ISectionOptions, IStylesOptions } from 'docx';
 import debounce from 'lodash/debounce';
-import { BlockHandle } from './extensions/BlockHandle';
+import { BlockHandle } from './BlockHandle';
 import { TableMenu } from './TableMenu';
-import { AIShortcut } from './extensions/AIShortcut';
+import { AIShortcut } from './utils/AIShortcut';
 import { ToastNotification } from './ToastNotification';
 import { EditorOverlay } from './EditorOverlay';
 import { TableOfContents } from './TableOfContents';
@@ -125,11 +125,12 @@ export const Editor = ({
           },
         },
       }),
-      BlockHandle.configure({
-        HTMLAttributes: {
-          class: 'block-handle',
-        },
-      }),
+      // 注释掉 BlockHandle 的配置，保留引用但不使用其功能
+      // BlockHandle.configure({
+      //   HTMLAttributes: {
+      //     class: 'block-handle',
+      //   },
+      // }),
       Markdown.configure({
         transformPastedText: true,
         transformCopiedText: true,

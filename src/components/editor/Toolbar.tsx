@@ -35,7 +35,7 @@ import {
   Wand2,
   FileText,
 } from 'lucide-react';
-import { Heading4, Heading5, Heading6 } from './extensions/BlockHandle';
+import { Heading4, Heading5, Heading6 } from './icons/HeadingIcons';
 import * as Popover from '@radix-ui/react-popover';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useRef, useState } from 'react';

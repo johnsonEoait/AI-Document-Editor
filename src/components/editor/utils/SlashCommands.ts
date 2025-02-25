@@ -2,7 +2,7 @@ import { Extension } from '@tiptap/core';
 import Suggestion from '@tiptap/suggestion';
 import { ReactRenderer } from '@tiptap/react';
 import tippy from 'tippy.js';
-import { CommandList } from './CommandMenu';
+import { CommandList } from '../CommandMenu';
 
 export const SlashCommands = Extension.create({
   name: 'slash-commands',

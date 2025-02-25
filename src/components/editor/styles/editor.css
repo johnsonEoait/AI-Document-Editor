@@ -4,99 +4,9 @@
   overflow: visible;
 }
 
-/* 块级句柄样式 */
-.block-handle {
-  position: absolute;
-  z-index: 50;
-  pointer-events: auto;
-  user-select: none;
-  will-change: transform, opacity;
-}
+/* 块级句柄样式已删除 */
 
-.block-handle:hover {
-  opacity: 1 !important;
-}
-
-.block-handle .block-type-icon svg {
-  opacity: 0.6;
-  transition: opacity 0.2s ease;
-}
-
-.block-handle:hover .block-type-icon svg {
-  opacity: 1;
-}
-
-/* 拖拽相关样式 */
-.dragging-active {
-  cursor: move !important;
-}
-
-.dragging {
-  opacity: 0.5;
-  position: relative;
-  pointer-events: none;
-  background-color: rgba(59, 130, 246, 0.1);
-  border: 2px solid rgb(59, 130, 246);
-  border-radius: 4px;
-}
-
-.drag-ghost {
-  opacity: 0.8;
-  background-color: white;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  border-radius: 4px;
-  pointer-events: none;
-  z-index: 9999;
-  max-width: 800px;
-  transform: translateY(-50%);
-  border: 2px solid rgb(37, 99, 235);
-  background-color: rgba(37, 99, 235, 0.05);
-}
-
-.drop-target {
-  position: relative;
-}
-
-.drop-target-before::before {
-  content: '';
-  position: absolute;
-  top: -2px;
-  left: -60px;
-  right: 0;
-  height: 3px;
-  background: rgb(37, 99, 235);
-  border-radius: 3px;
-  pointer-events: none;
-  z-index: 100;
-  transform: translateY(-50%);
-  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.1);
-}
-
-.drop-target-after::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: -60px;
-  right: 0;
-  height: 3px;
-  background: rgb(37, 99, 235);
-  border-radius: 3px;
-  pointer-events: none;
-  z-index: 100;
-  transform: translateY(50%);
-  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.1);
-}
-
-/* 拖拽手柄样式 */
-.drag-handle {
-  cursor: move;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.block-handle:hover .drag-handle {
-  opacity: 1;
-}
+/* 拖拽相关样式已删除 */
 
 /* 块级元素的基础样式 */
 .ProseMirror p,
@@ -129,32 +39,9 @@
   content: none;
 }
 
-/* 块级元素的激活状态 */
-.ProseMirror p.is-active,
-.ProseMirror h1.is-active,
-.ProseMirror h2.is-active,
-.ProseMirror h3.is-active,
-.ProseMirror h4.is-active,
-.ProseMirror h5.is-active,
-.ProseMirror h6.is-active,
-.ProseMirror ul.is-active,
-.ProseMirror ol.is-active,
-.ProseMirror blockquote.is-active,
-.ProseMirror pre.is-active,
-.ProseMirror table.is-active {
-  background-color: rgba(0, 0, 0, 0.03);
-}
+/* 块级元素的激活状态样式已删除 */
 
-/* 块级句柄的悬停区域 */
-.block-handle > div {
-  padding: 8px;
-  border-radius: 4px;
-  transition: background-color 0.2s ease;
-}
-
-.block-handle > div:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-}
+/* 块级句柄的悬停区域样式已删除 */
 
 /* Markdown 表格样式 */
 .ProseMirror table {
@@ -212,9 +99,7 @@
   }
 }
 
-.block-handle {
-  animation: fadeIn 0.2s ease-out;
-}
+/* 块级句柄动画样式已删除 */
 
 .table-context-menu {
   user-select: none;
@@ -247,10 +132,6 @@
 
 .animation-delay-2000 {
   animation-delay: 2s;
-}
-
-.animation-delay-4000 {
-  animation-delay: 4s;
 }
 
 /* 优化渐变动画 */
