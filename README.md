@@ -5,10 +5,11 @@
 </p>
 
 <p align="center">
-  <strong>由 <a href="https://www.starera.cn" target="_blank">广东星时代网络技术有限公司</a> 开发</strong>
+  <strong>由 <a href="https://www.eoait.com" target="_blank">广东星时代网络技术有限公司</a> 开发</strong>
 </p>
 
 <p align="center">
+  <a href="https://aidoc.eoait.com" target="_blank">在线演示</a> •
   <a href="#特性">特性</a> •
   <a href="#快速开始">快速开始</a> •
   <a href="#使用指南">使用指南</a> •
@@ -17,27 +18,51 @@
   <a href="#许可证">许可证</a>
 </p>
 
+<p align="center">
+  <strong>仓库地址：<a href="https://gitee.com/eoait2024/open-source-ai-editor" target="_blank">https://gitee.com/eoait2024/open-source-ai-editor</a></strong>
+</p>
+
+<p align="center">
+  <img src="gitassets/总体预览.png" alt="编辑器总体预览" width="80%" />
+</p>
+
 ## 特性
 
 🚀 **现代化编辑体验**
 - 基于 TipTap 和 ProseMirror 的强大富文本编辑功能
 - 支持 Markdown 语法和快捷键
 - 丝滑的编辑体验和动画效果
+- 丰富的富文本编辑功能，满足各种文档需求
+- 命令菜单快速插入新的内容块
 
 🤖 **AI 辅助功能**
-- 内置 AI 助手，帮助改进文本
-- 智能内容生成和补全
+- 内置 AI 助手，帮助生成和改写文本
+- 支持自定义指令进行内容生成和改写
 - 炫酷的 AI 内容插入动画效果
+- 兼容 OpenAI 格式的各类 AI 模型接口
+
+<p align="center">
+  <img src="gitassets/AI助手预览.png" alt="AI助手预览" width="40%" />
+  <img src="gitassets/AI助手改写预览.png" alt="AI助手改写预览" width="40%" />
+</p>
 
 📝 **全面的文档功能**
 - 支持标题、列表、表格、代码块等丰富元素
-- 自动生成目录
+- 自动生成目录，支持折叠和展开
 - 文本高亮、颜色和字体大小调整
+- 查找和替换功能
+- 字数统计功能
 
-💾 **多种导出格式**
+💾 **便捷的使用体验**
+- 免登录即可使用，降低使用门槛
+- 自动保存功能，不怕内容丢失
 - 导出为 Word 文档 (.docx)
-- 自动保存功能
 - 文档标题管理
+
+<p align="center">
+  <img src="gitassets/插入新的块预览.png" alt="插入新的块预览" width="40%" />
+  <img src="gitassets/AI生成内容预览.png" alt="AI生成内容预览" width="40%" />
+</p>
 
 🎨 **美观的用户界面**
 - 基于 Tailwind CSS 的现代设计
@@ -55,8 +80,8 @@
 
 1. 克隆仓库
 ```bash
-git clone https://github.com/starera/ai-doc-editor.git
-cd ai-doc-editor
+git clone https://gitee.com/eoait2024/open-source-ai-editor.git
+cd open-source-ai-editor
 ```
 
 2. 安装依赖
@@ -68,7 +93,7 @@ pnpm install
 ```bash
 cp .env.example .env
 ```
-编辑 `.env` 文件，添加必要的 API 密钥（如 OpenAI API 密钥）。
+编辑 `.env` 文件，添加必要的 API 密钥（支持 OpenAI 格式的各类 AI 接口）。
 
 4. 启动开发服务器
 ```bash
@@ -77,19 +102,42 @@ pnpm dev
 
 5. 在浏览器中打开 [http://localhost:3000](http://localhost:3000)
 
+### Docker 部署
+
+我们也提供了 Docker 部署方式，详情请参考 [DOCKER_IMAGE_README.md](DOCKER_IMAGE_README.md)。
+
+1. 构建 Docker 镜像
+```bash
+docker build -t ai-doc-editor .
+```
+
+2. 运行 Docker 容器
+```bash
+docker run -p 3000:3000 -e OPENAI_API_KEY=your_api_key_here ai-doc-editor
+```
+
 ## 使用指南
 
 ### 基本编辑
 
 - 使用工具栏格式化文本
 - 支持快捷键（Ctrl+B 加粗，Ctrl+I 斜体等）
-- 输入 `/` 触发命令菜单
+- 输入 `/` 触发命令菜单，快速插入新的内容块
 
 ### AI 功能
 
 - 选中文本后按 `Alt + /` 触发 AI 助手
-- AI 可以帮助改写、扩展、总结或翻译选中的文本
+- AI 可以帮助生成新内容或改写选中的文本
+- 支持自定义 AI 指令，满足个性化需求
 - 生成的内容会以平滑的动画效果插入
+
+### 文档管理
+
+- 免登录即可使用，数据自动保存在本地
+- 支持生成和更新目录
+- 查找和替换功能（Ctrl+F）
+- 表格编辑和管理
+- 字数统计功能
 
 ### 导出文档
 
@@ -105,7 +153,26 @@ pnpm dev
 - **样式**: [Tailwind CSS](https://tailwindcss.com/) 3.x
 - **动画**: [Framer Motion](https://www.framer.com/motion/)
 - **文档处理**: [docx](https://docx.js.org/)
-- **AI 集成**: [OpenAI API](https://openai.com/api/)
+- **AI 集成**: 
+  - 支持 OpenAI 格式的各类 AI 接口
+  - 当前使用 Grok-2 模型（有 150 美金余额）
+  - 后续将切换至智谱 GLM-4-Flash
+- **UI 组件**: [Radix UI](https://www.radix-ui.com/)
+
+## 路线图
+
+以下是我们计划在下一版本中添加的功能：
+
+- [ ] 块句柄支持（拖拽调整文档结构）
+- [ ] 数据可视化功能
+- [ ] 自定义 AI 模型配置
+- [ ] 暗色模式支持
+- [ ] 协作编辑功能
+- [ ] 更多导出格式（PDF、Markdown）
+- [ ] 图片上传和管理
+- [ ] 版本历史和回滚
+- [ ] 移动端优化
+- [ ] 插件系统
 
 ## 贡献指南
 
@@ -128,7 +195,7 @@ pnpm dev
 - 特定商业用途需获得书面许可
 - 专利使用需获取必要许可
 
-版权所有 © 2023-2024 <a href="https://www.starera.cn" target="_blank">广东星时代网络技术有限公司</a>
+版权所有 © 2023-2024 <a href="https://www.eoait.com" target="_blank">广东星时代网络技术有限公司</a>
 
 ## 致谢
 
@@ -136,10 +203,18 @@ pnpm dev
 - 感谢所有为这个项目做出贡献的开发者
 - 特别感谢我们的用户社区提供的宝贵反馈
 
+## 联系我们
+
+如果您有任何问题或建议，请通过以下方式联系我们：
+
+- 官方网站：[https://www.eoait.com](https://www.eoait.com)
+- 在线演示：[https://aidoc.eoait.com](https://aidoc.eoait.com)
+- 问题反馈：请发送邮件至 [johnson@eoait.com](mailto:johnson@eoait.com) 或在 [Gitee Issues](https://gitee.com/eoait2024/open-source-ai-editor/issues) 提交
+
 ---
 
 <p align="center">
-  <strong><a href="https://www.starera.cn" target="_blank">广东星时代网络技术有限公司</a></strong> 出品
+  <strong><a href="https://www.eoait.com" target="_blank">广东星时代网络技术有限公司</a></strong> 出品
 </p>
 <p align="center">
   用 ❤️ 制作
