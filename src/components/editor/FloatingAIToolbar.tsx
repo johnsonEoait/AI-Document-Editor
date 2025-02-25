@@ -2,7 +2,7 @@
 
 import { Editor } from '@tiptap/react';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Wand2, Send, X, Check, RotateCcw, Loader2 } from 'lucide-react';
+import { Wand2, Send, X, Check, RotateCcw, Loader2, GripHorizontal } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
@@ -30,6 +30,12 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
   const [generatedContent, setGeneratedContent] = useState('');
   const selectionRef = useRef<{ from: number; to: number } | null>(null);
   const pluginKey = new PluginKey('aiHighlight');
+  const inputRef = useRef<HTMLInputElement>(null);
+  const dragRef = useRef<{ isDragging: boolean; startX: number; startY: number }>({
+    isDragging: false,
+    startX: 0,
+    startY: 0
+  });
 
   // 创建高亮插件
   useEffect(() => {
@@ -65,14 +71,77 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
     const style = document.createElement('style');
     style.innerHTML = `
       .ai-processing-highlight {
-        background-color: rgba(59, 130, 246, 0.1);
+        background: linear-gradient(120deg, rgba(96, 165, 250, 0.1), rgba(129, 140, 248, 0.1));
         border-radius: 0.25rem;
         padding: 0.125rem 0;
-        border-bottom: 2px solid rgb(59, 130, 246);
-        transition: background-color 0.2s ease;
+        border-bottom: 2px solid rgba(96, 165, 250, 0.5);
+        transition: all 0.3s ease;
       }
-      .ai-processing-highlight:hover {
-        background-color: rgba(59, 130, 246, 0.15);
+      
+      .ai-toolbar-content {
+        animation: aiToolbarSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      
+      @keyframes aiToolbarSlideIn {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      
+      .ai-input-wrapper {
+        position: relative;
+        transition: all 0.2s ease;
+      }
+      
+      .ai-input-wrapper:focus-within {
+        transform: translateY(-1px);
+      }
+      
+      .ai-generated-content {
+        position: relative;
+        overflow: hidden;
+      }
+      
+      .ai-generated-content::-webkit-scrollbar {
+        width: 6px;
+      }
+      
+      .ai-generated-content::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      
+      .ai-generated-content::-webkit-scrollbar-thumb {
+        background-color: rgba(0, 0, 0, 0.1);
+        border-radius: 3px;
+      }
+      
+      .ai-generated-content::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(0, 0, 0, 0.2);
+      }
+
+      .ai-toolbar-glass {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        box-shadow: 
+          0 4px 12px rgba(0, 0, 0, 0.05),
+          0 2px 6px rgba(0, 0, 0, 0.03);
+      }
+
+      .ai-drag-handle {
+        cursor: move;
+        user-select: none;
+        -webkit-user-select: none;
+        touch-action: none;
+      }
+
+      .ai-drag-handle:hover {
+        background-color: rgba(0, 0, 0, 0.03);
       }
     `;
     document.head.appendChild(style);
@@ -81,6 +150,48 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
       document.head.removeChild(style);
     };
   }, []);
+
+  // 添加拖拽相关的事件处理
+  useEffect(() => {
+    if (!isVisible) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!dragRef.current.isDragging) return;
+
+      const deltaX = e.clientX - dragRef.current.startX;
+      const deltaY = e.clientY - dragRef.current.startY;
+
+      setPosition(prev => ({
+        x: prev.x + deltaX,
+        y: prev.y + deltaY
+      }));
+
+      dragRef.current.startX = e.clientX;
+      dragRef.current.startY = e.clientY;
+    };
+
+    const handleMouseUp = () => {
+      dragRef.current.isDragging = false;
+      document.body.style.cursor = 'default';
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isVisible]);
+
+  // 自动聚焦输入框
+  useEffect(() => {
+    if (isVisible && inputRef.current) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [isVisible]);
 
   // 计算工具栏位置的函数
   const calculatePosition = useCallback((to: number) => {
@@ -378,6 +489,16 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
     }
   };
 
+  const handleDragStart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    dragRef.current = {
+      isDragging: true,
+      startX: e.clientX,
+      startY: e.clientY
+    };
+    document.body.style.cursor = 'move';
+  };
+
   if (!isVisible) return null;
 
   return (
@@ -387,118 +508,107 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
         left: position.x,
         top: position.y,
         transform: 'translateY(0)',
-        transition: 'transform 0.2s ease, opacity 0.2s ease',
+        transition: dragRef.current.isDragging ? 'none' : 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       }}
     >
-      <Popover.Root open={isVisible} onOpenChange={handleCancel}>
-        <Popover.Trigger asChild>
+      <div className="ai-toolbar-content ai-toolbar-glass w-[480px] overflow-hidden flex flex-col rounded-lg">
+        <div 
+          className="ai-drag-handle flex items-center justify-between px-3 py-1.5 border-b border-gray-100/80"
+          onMouseDown={handleDragStart}
+        >
+          <div className="flex items-center gap-2">
+            <GripHorizontal className="w-4 h-4 text-gray-400" />
+            <span className="text-xs text-gray-400 select-none">点击此处拖拽</span>
+          </div>
           <button
-            className="flex items-center gap-2 px-3 py-2 text-sm bg-white rounded-lg shadow-lg border border-gray-200 hover:bg-gray-50"
-            onMouseDown={(e) => {
-              e.preventDefault();
-            }}
+            onClick={handleCancel}
+            className="p-1 text-gray-400 hover:text-gray-600 rounded-md transition-colors"
           >
-            <Wand2 className="w-4 h-4" />
-            AI 助手
+            <X className="w-4 h-4" />
           </button>
-        </Popover.Trigger>
-        <Popover.Portal>
-          <Popover.Content
-            className="bg-white rounded-lg shadow-lg border border-gray-200 w-[400px] max-h-[600px] overflow-hidden flex flex-col"
-            sideOffset={5}
-            onOpenAutoFocus={(e) => {
-              e.preventDefault();
-            }}
-            onPointerDownOutside={(e) => {
-              e.preventDefault();
-            }}
-          >
-            <div className="p-4 border-b border-gray-200">
-              <div className="text-sm font-medium mb-2">
-                {selectionRef.current && selectionRef.current.from !== selectionRef.current.to
-                  ? '处理选中的文本'
-                  : '在此处插入 AI 生成的内容'}
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  placeholder={selectionRef.current && selectionRef.current.from !== selectionRef.current.to
-                    ? "例如：翻译成英文、总结要点、改写为正式语气..."
-                    : "例如：写一段介绍、生成大纲、续写内容..."
-                  }
-                  className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  disabled={isLoading}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSubmit();
-                    }
-                  }}
-                  onMouseDown={(e) => {
-                    e.stopPropagation();
-                  }}
-                />
-                <button
-                  onClick={handleSubmit}
-                  disabled={isLoading}
-                  className="p-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                  }}
-                >
-                  {isLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Send className="w-4 h-4" />
-                  )}
-                </button>
+        </div>
+
+        <div className="p-3">
+          <div className="ai-input-wrapper flex gap-2">
+            <input
+              ref={inputRef}
+              type="text"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder={selectionRef.current && selectionRef.current.from !== selectionRef.current.to
+                ? "翻译/总结/改写..."
+                : "写一段/续写..."
+              }
+              className="flex-1 px-3 py-2 text-sm bg-gray-50/50 rounded-lg border border-gray-200/50 focus:outline-none focus:ring-1 focus:ring-blue-500/20 focus:border-blue-500/20 placeholder:text-gray-400"
+              disabled={isLoading}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit();
+                }
+              }}
+            />
+            <button
+              onClick={handleSubmit}
+              disabled={isLoading}
+              className="p-2 text-white bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 min-w-[36px] flex items-center justify-center"
+            >
+              {isLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+            </button>
+          </div>
+
+          <div className="mt-2 flex items-center justify-between text-[11px]">
+            <div className="text-gray-400">
+              {selectionRef.current && selectionRef.current.from !== selectionRef.current.to
+                ? "处理选中的文本"
+                : "在此处生成内容"
+              }
+            </div>
+            <div className="flex items-center gap-1 text-gray-400">
+              <kbd className="px-1.5 py-0.5 text-[10px] font-medium bg-gray-100/80 rounded">Alt</kbd>
+              <span>+</span>
+              <kbd className="px-1.5 py-0.5 text-[10px] font-medium bg-gray-100/80 rounded">/</kbd>
+            </div>
+          </div>
+        </div>
+
+        {generatedContent && (
+          <>
+            <div className="ai-generated-content flex-1 max-h-[400px] px-3 py-2.5 overflow-y-auto bg-gray-50/50">
+              <div className="text-sm text-gray-600 whitespace-pre-wrap leading-relaxed">
+                {generatedContent}
               </div>
             </div>
-
-            {generatedContent && (
-              <>
-                <div className="flex-1 p-4 overflow-y-auto">
-                  <div className="text-sm whitespace-pre-wrap">
-                    {generatedContent}
-                  </div>
-                </div>
-                <div className="flex justify-end gap-2 p-4 border-t border-gray-200 bg-gray-50">
-                  <button
-                    onClick={handleCancel}
-                    className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 bg-white rounded border border-gray-200 hover:bg-gray-50"
-                  >
-                    <X className="w-4 h-4" />
-                    放弃
-                  </button>
-                  <button
-                    onClick={handleRegenerate}
-                    className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 bg-white rounded border border-gray-200 hover:bg-gray-50"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    重新生成
-                  </button>
-                  <button
-                    onClick={handleInsertContent}
-                    className="flex items-center gap-1 px-3 py-1.5 text-sm text-white bg-blue-500 rounded hover:bg-blue-600"
-                  >
-                    <Check className="w-4 h-4" />
-                    插入
-                  </button>
-                </div>
-              </>
-            )}
-
-            <div className="p-4 text-xs text-gray-500 border-t border-gray-200">
-              提示：{selectionRef.current && selectionRef.current.from !== selectionRef.current.to
-                ? "可以输入任何文本处理指令，AI 会智能理解并执行。"
-                : "可以让 AI 生成新内容，或者基于上下文续写。"
-              }按下 Alt + / 也可以快速打开 AI 助手。
+            <div className="flex justify-end gap-1.5 p-2 border-t border-gray-100">
+              <button
+                onClick={handleCancel}
+                className="flex items-center gap-1 px-2 py-1.5 text-xs text-gray-500 hover:text-gray-700 bg-white/80 rounded-md border border-gray-200/50 hover:bg-white hover:border-gray-300/50 transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+                取消
+              </button>
+              <button
+                onClick={handleRegenerate}
+                className="flex items-center gap-1 px-2 py-1.5 text-xs text-gray-500 hover:text-gray-700 bg-white/80 rounded-md border border-gray-200/50 hover:bg-white hover:border-gray-300/50 transition-colors"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                重新生成
+              </button>
+              <button
+                onClick={handleInsertContent}
+                className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-white bg-gradient-to-r from-blue-500 to-blue-600 rounded-md hover:from-blue-600 hover:to-blue-700 transition-colors"
+              >
+                <Check className="w-3.5 h-3.5" />
+                插入
+              </button>
             </div>
-          </Popover.Content>
-        </Popover.Portal>
-      </Popover.Root>
+          </>
+        )}
+      </div>
     </div>
   );
 }; 
