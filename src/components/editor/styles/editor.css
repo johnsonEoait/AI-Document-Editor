@@ -182,22 +182,6 @@
   animation: blob 10s ease-in-out infinite;
 }
 
-/* 淡入动画 */
-.editor-disabled-overlay {
-  animation: overlayFadeIn 0.5s ease-out;
-}
-
-@keyframes overlayFadeIn {
-  from {
-    opacity: 0;
-    backdrop-filter: blur(0px);
-  }
-  to {
-    opacity: 1;
-    backdrop-filter: blur(4px);
-  }
-}
-
 /* 查找高亮样式 */
 .search-highlight {
   background-color: rgba(255, 255, 0, 0.3);

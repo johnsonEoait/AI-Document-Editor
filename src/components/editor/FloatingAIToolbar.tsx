@@ -2,7 +2,7 @@
 
 import { Editor } from '@tiptap/react';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Wand2, Send, X, Check, RotateCcw, Loader2, GripHorizontal } from 'lucide-react';
+import { Wand2, Send, X, Check, RotateCcw, Loader2, GripHorizontal, Sparkles } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
@@ -36,6 +36,7 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
     startX: 0,
     startY: 0
   });
+  const [sparkles, setSparkles] = useState<Array<{id: number, x: number, y: number, size: number, delay: number}>>([]);
 
   // 创建高亮插件
   useEffect(() => {
@@ -68,80 +69,172 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
   useEffect(() => {
     if (typeof document === 'undefined') return;
 
+    // 添加高亮和工具栏样式
     const style = document.createElement('style');
     style.innerHTML = `
       .ai-processing-highlight {
-        background: linear-gradient(120deg, rgba(96, 165, 250, 0.1), rgba(129, 140, 248, 0.1));
-        border-radius: 0.25rem;
-        padding: 0.125rem 0;
-        border-bottom: 2px solid rgba(96, 165, 250, 0.5);
-        transition: all 0.3s ease;
+        background: linear-gradient(90deg, rgba(255, 154, 158, 0.1), rgba(250, 208, 196, 0.1), rgba(251, 194, 235, 0.1));
+        background-size: 200% 100%;
+        animation: gradient-shift 2s ease infinite;
+      }
+      
+      @keyframes gradient-shift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
       }
       
       .ai-toolbar-content {
-        animation: aiToolbarSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
       }
       
-      @keyframes aiToolbarSlideIn {
-        from {
-          opacity: 0;
-          transform: translateY(8px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-      
-      .ai-input-wrapper {
-        position: relative;
-        transition: all 0.2s ease;
-      }
-      
-      .ai-input-wrapper:focus-within {
-        transform: translateY(-1px);
-      }
-      
-      .ai-generated-content {
-        position: relative;
-        overflow: hidden;
-      }
-      
-      .ai-generated-content::-webkit-scrollbar {
-        width: 6px;
-      }
-      
-      .ai-generated-content::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      
-      .ai-generated-content::-webkit-scrollbar-thumb {
-        background-color: rgba(0, 0, 0, 0.1);
-        border-radius: 3px;
-      }
-      
-      .ai-generated-content::-webkit-scrollbar-thumb:hover {
-        background-color: rgba(0, 0, 0, 0.2);
-      }
-
       .ai-toolbar-glass {
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(12px);
-        border: 1px solid rgba(0, 0, 0, 0.05);
-        box-shadow: 
-          0 4px 12px rgba(0, 0, 0, 0.05),
-          0 2px 6px rgba(0, 0, 0, 0.03);
+        background: transparent;
+        backdrop-filter: blur(10px);
+        border: none;
+        position: relative;
+        z-index: 1;
       }
-
+      
+      .ai-toolbar-glass::before {
+        content: '';
+        position: absolute;
+        inset: -1px;
+        background: linear-gradient(135deg, #ff9a9e, #fad0c4, #fad0c4, #fbc2eb, #a6c1ee);
+        background-size: 300% 300%;
+        animation: gradient-shift 8s ease infinite;
+        border-radius: 16px;
+        z-index: -1;
+        opacity: 0.7;
+      }
+      
+      .ai-toolbar-glass::after {
+        content: '';
+        position: absolute;
+        inset: 1px;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        z-index: -1;
+        box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.3);
+      }
+      
       .ai-drag-handle {
         cursor: move;
         user-select: none;
-        -webkit-user-select: none;
-        touch-action: none;
+        border-bottom: 1px solid rgba(229, 231, 235, 0.3);
       }
-
-      .ai-drag-handle:hover {
-        background-color: rgba(0, 0, 0, 0.03);
+      
+      .magic-input {
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(229, 231, 235, 0.5);
+        transition: all 0.2s ease;
+      }
+      
+      .magic-input:focus {
+        background: rgba(255, 255, 255, 0.9);
+        border-color: rgba(0, 0, 0, 0.1);
+        box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.05);
+      }
+      
+      .magic-btn {
+        position: relative;
+        overflow: hidden;
+        z-index: 1;
+        border-radius: 12px;
+        background-color: #000000;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        transition: all 0.2s ease;
+      }
+      
+      .magic-btn:hover {
+        background-color: #333333;
+        transform: translateY(-1px);
+      }
+      
+      .magic-btn:active {
+        background-color: #000000;
+        transform: translateY(1px);
+      }
+      
+      .simple-btn {
+        border-radius: 8px;
+        transition: all 0.2s ease;
+        padding: 6px 12px;
+      }
+      
+      .simple-btn:hover {
+        background-color: rgba(243, 244, 246, 0.8);
+      }
+      
+      .simple-btn:active {
+        background-color: rgba(229, 231, 235, 0.8);
+      }
+      
+      .ai-loading-indicator {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+      }
+      
+      .ai-loading-indicator div {
+        width: 4px;
+        height: 4px;
+        background-color: white;
+        border-radius: 50%;
+        animation: bounce 1.4s infinite ease-in-out both;
+      }
+      
+      .ai-loading-indicator div:nth-child(1) {
+        animation-delay: -0.32s;
+      }
+      
+      .ai-loading-indicator div:nth-child(2) {
+        animation-delay: -0.16s;
+      }
+      
+      @keyframes bounce {
+        0%, 80%, 100% { transform: scale(0); }
+        40% { transform: scale(1); }
+      }
+      
+      .ai-generated-content {
+        border-top: 1px solid rgba(229, 231, 235, 0.3);
+      }
+      
+      .typing-effect {
+        display: inline-block;
+        width: 4px;
+        height: 16px;
+        background-color: #000000;
+        animation: blink 1s step-end infinite;
+        vertical-align: middle;
+      }
+      
+      @keyframes blink {
+        from, to { opacity: 1; }
+        50% { opacity: 0; }
+      }
+      
+      .sparkle {
+        position: absolute;
+        background-color: white;
+        border-radius: 50%;
+        opacity: 0;
+        animation: sparkle-fade 1.5s ease forwards;
+        pointer-events: none;
+      }
+      
+      @keyframes sparkle-fade {
+        0% { transform: scale(0); opacity: 0; }
+        50% { transform: scale(1); opacity: 0.8; }
+        100% { transform: scale(0); opacity: 0; }
+      }
+      
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
       }
     `;
     document.head.appendChild(style);
@@ -149,7 +242,7 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
     return () => {
       document.head.removeChild(style);
     };
-  }, []);
+  }, [editor]);
 
   // 添加拖拽相关的事件处理
   useEffect(() => {
@@ -271,6 +364,16 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
       console.log('showToolbar: Setting new position and showing toolbar');
       setPosition(position);
       setIsVisible(true);
+      
+      // 添加魔法效果 - 生成随机的闪光点
+      const newSparkles = Array.from({ length: 8 }, (_, i) => ({
+        id: Date.now() + i,
+        x: Math.random() * 100,
+        y: Math.random() * 100,
+        size: 5 + Math.random() * 15,
+        delay: Math.random() * 0.5
+      }));
+      setSparkles(newSparkles);
     } else {
       console.log('showToolbar: Failed to calculate position');
     }
@@ -430,7 +533,7 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
     }
 
     setIsLoading(true);
-    onLoadingChange(true);
+    onLoadingChange(false); // 不再使用全屏遮罩
     setGeneratedContent(''); // 清空之前的内容
 
     try {
@@ -508,53 +611,91 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
         left: position.x,
         top: position.y,
         transform: 'translateY(0)',
-        transition: dragRef.current.isDragging ? 'none' : 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        transition: dragRef.current.isDragging ? 'none' : 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
       }}
     >
-      <div className="ai-toolbar-content ai-toolbar-glass w-[480px] overflow-hidden flex flex-col rounded-lg">
+      {/* 魔法闪光效果 */}
+      {sparkles.map(sparkle => (
+        <div
+          key={sparkle.id}
+          className="sparkle"
+          style={{
+            left: `${sparkle.x}%`,
+            top: `${sparkle.y}%`,
+            width: `${sparkle.size}px`,
+            height: `${sparkle.size}px`,
+            animationDelay: `${sparkle.delay}s`
+          }}
+        />
+      ))}
+      
+      <div className="ai-toolbar-content ai-toolbar-glass w-[500px] overflow-hidden flex flex-col rounded-2xl shadow-lg">
         <div 
-          className="ai-drag-handle flex items-center justify-between px-3 py-1.5 border-b border-gray-100/80"
+          className="ai-drag-handle flex items-center justify-between px-4 py-2.5"
           onMouseDown={handleDragStart}
         >
           <div className="flex items-center gap-2">
-            <GripHorizontal className="w-4 h-4 text-gray-400" />
-            <span className="text-xs text-gray-400 select-none">点击此处拖拽</span>
+            <Sparkles className="w-4 h-4 text-gray-500" />
+            <span className="text-sm font-medium text-gray-600 select-none">AI 助手</span>
           </div>
           <button
             onClick={handleCancel}
             className="p-1 text-gray-400 hover:text-gray-600 rounded-md transition-colors"
+            aria-label="关闭"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="p-3">
+        <div className="p-4">
+          {selectionRef.current && selectionRef.current.from !== selectionRef.current.to && (
+            <div className="mb-3 px-3 py-2 bg-gray-50/30 rounded-lg border border-gray-100/50 text-xs text-gray-600 max-h-[100px] overflow-y-auto">
+              <div className="flex items-start gap-2">
+                <div className="flex-shrink-0 mt-0.5">
+                  <div className="w-1 h-[calc(100%-2px)] bg-gray-300/50 rounded-full"></div>
+                </div>
+                <div className="flex-1 line-clamp-4 whitespace-pre-wrap">
+                  {editor.state.doc.textBetween(selectionRef.current.from, selectionRef.current.to, '\n')}
+                </div>
+              </div>
+            </div>
+          )}
           <div className="ai-input-wrapper flex gap-2">
-            <input
-              ref={inputRef}
-              type="text"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder={selectionRef.current && selectionRef.current.from !== selectionRef.current.to
-                ? "翻译/总结/改写..."
-                : "写一段/续写..."
-              }
-              className="flex-1 px-3 py-2 text-sm bg-gray-50/50 rounded-lg border border-gray-200/50 focus:outline-none focus:ring-1 focus:ring-blue-500/20 focus:border-blue-500/20 placeholder:text-gray-400"
-              disabled={isLoading}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSubmit();
+            <div className="relative flex-1">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                <Wand2 className="w-4 h-4" />
+              </div>
+              <input
+                ref={inputRef}
+                type="text"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder={selectionRef.current && selectionRef.current.from !== selectionRef.current.to
+                  ? "翻译/总结/改写..."
+                  : "写一段/续写..."
                 }
-              }}
-            />
+                className="magic-input flex-1 pl-10 pr-3 py-3 text-sm rounded-xl w-full focus:outline-none placeholder:text-gray-300"
+                disabled={isLoading}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit();
+                  }
+                }}
+              />
+            </div>
             <button
               onClick={handleSubmit}
               disabled={isLoading}
-              className="p-2 text-white bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 min-w-[36px] flex items-center justify-center"
+              className="magic-btn p-3 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 min-w-[46px] flex items-center justify-center"
+              aria-label="发送"
             >
               {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <div className="ai-loading-indicator">
+                  <div></div>
+                  <div></div>
+                  <div></div>
+                </div>
               ) : (
                 <Send className="w-4 h-4" />
               )}
@@ -562,45 +703,49 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
           </div>
 
           <div className="mt-2 flex items-center justify-between text-[11px]">
-            <div className="text-gray-400">
+            <div className="text-gray-500 flex items-center gap-1.5">
               {selectionRef.current && selectionRef.current.from !== selectionRef.current.to
                 ? "处理选中的文本"
                 : "在此处生成内容"
               }
             </div>
-            <div className="flex items-center gap-1 text-gray-400">
-              <kbd className="px-1.5 py-0.5 text-[10px] font-medium bg-gray-100/80 rounded">Alt</kbd>
+            <div className="flex items-center gap-1 text-gray-500">
+              <kbd className="px-1.5 py-0.5 text-[10px] font-medium bg-gray-50/70 rounded border border-gray-200/70">Alt</kbd>
               <span>+</span>
-              <kbd className="px-1.5 py-0.5 text-[10px] font-medium bg-gray-100/80 rounded">/</kbd>
+              <kbd className="px-1.5 py-0.5 text-[10px] font-medium bg-gray-50/70 rounded border border-gray-200/70">/</kbd>
             </div>
           </div>
         </div>
 
         {generatedContent && (
           <>
-            <div className="ai-generated-content flex-1 max-h-[400px] px-3 py-2.5 overflow-y-auto bg-gray-50/50">
-              <div className="text-sm text-gray-600 whitespace-pre-wrap leading-relaxed">
+            <div className="ai-generated-content flex-1 max-h-[400px] px-4 py-3 overflow-y-auto">
+              <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
                 {generatedContent}
+                {isLoading && <span className="typing-effect">&nbsp;</span>}
               </div>
             </div>
-            <div className="flex justify-end gap-1.5 p-2 border-t border-gray-100">
+            <div className="flex justify-end gap-2 p-3 border-t border-gray-100/30">
               <button
                 onClick={handleCancel}
-                className="flex items-center gap-1 px-2 py-1.5 text-xs text-gray-500 hover:text-gray-700 bg-white/80 rounded-md border border-gray-200/50 hover:bg-white hover:border-gray-300/50 transition-colors"
+                className="simple-btn flex items-center gap-1 px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors"
+                aria-label="取消"
               >
                 <X className="w-3.5 h-3.5" />
                 取消
               </button>
               <button
                 onClick={handleRegenerate}
-                className="flex items-center gap-1 px-2 py-1.5 text-xs text-gray-500 hover:text-gray-700 bg-white/80 rounded-md border border-gray-200/50 hover:bg-white hover:border-gray-300/50 transition-colors"
+                className="simple-btn flex items-center gap-1 px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors"
+                aria-label="重新生成"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 重新生成
               </button>
               <button
                 onClick={handleInsertContent}
-                className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-white bg-gradient-to-r from-blue-500 to-blue-600 rounded-md hover:from-blue-600 hover:to-blue-700 transition-colors"
+                className="magic-btn flex items-center gap-1 px-4 py-1.5 text-xs font-medium text-white hover:bg-gray-900 rounded-lg transition-colors"
+                aria-label="插入"
               >
                 <Check className="w-3.5 h-3.5" />
                 插入

@@ -35,7 +35,6 @@ import { BlockHandle } from './BlockHandle';
 import { TableMenu } from './TableMenu';
 import { AIShortcut } from './utils/AIShortcut';
 import { ToastNotification } from './ToastNotification';
-import { EditorOverlay } from './EditorOverlay';
 import { TableOfContents } from './TableOfContents';
 import { EditorHeader } from './EditorHeader';
 import { EditorFooter } from './EditorFooter';
@@ -72,7 +71,6 @@ export const Editor = ({
   const [title, setTitle] = useState<string>('未命名文档');
   const [showToc, setShowToc] = useState(false);
   const [tableOfContents, setTableOfContents] = useState<TableOfContentsItem[]>([]);
-  const [isEditorDisabled, setIsEditorDisabled] = useState(false);
 
   // 使用 useEffect 来加载保存的内容
   useEffect(() => {
@@ -398,8 +396,6 @@ export const Editor = ({
         position={dialogPosition ?? undefined}
       />
       
-      <EditorOverlay isVisible={isEditorDisabled} />
-      
       <div className="max-w-7xl mx-auto relative editor-container">
         <EditorHeader
           title={title}
@@ -430,7 +426,7 @@ export const Editor = ({
               {!isLinkEditorOpen && (
                 <FloatingAIToolbar 
                   editor={editor} 
-                  onLoadingChange={setIsEditorDisabled}
+                  onLoadingChange={() => {}}
                 />
               )}
               <InlineLinkEditor
