@@ -42,6 +42,7 @@ import { exportToDocx, downloadFile } from './utils/documentExport';
 import { generateTableOfContents, generateTitle } from './utils/editorUtils';
 import { loadSavedContent, saveContent } from './utils/editorStorage';
 import { EditorProps, ToastMessage, TableOfContentsItem, DialogPosition } from './types/editor';
+import './styles/aiToolbar.css';
 import './styles/editor.css';
 
 const lowlight = createLowlight(common);
@@ -227,7 +228,7 @@ export const Editor = ({
     injectCSS: false,
     editorProps: {
       attributes: {
-        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl focus:outline-none min-h-[500px] px-8 py-6 markdown-body relative',
+        class: 'prose prose-sm focus:outline-none min-h-[500px] px-8 py-6 markdown-body relative',
       },
     },
     parseOptions: {
@@ -415,13 +416,14 @@ export const Editor = ({
               onClose={() => setShowToc(false)}
               tableOfContents={tableOfContents}
               editor={editor}
+              setIsVisible={setShowToc}
             />
             
             {/* 主编辑区域 */}
             <div className="px-6">
               <EditorContent 
                 editor={editor}
-                className="editor-content relative prose prose-sm sm:prose lg:prose-lg xl:prose-2xl focus:outline-none min-h-[calc(100vh-280px)]"
+                className="editor-content relative prose prose-sm focus:outline-none min-h-[calc(100vh-280px)]"
               />
               {!isLinkEditorOpen && (
                 <FloatingAIToolbar 

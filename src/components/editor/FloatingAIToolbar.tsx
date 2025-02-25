@@ -7,6 +7,7 @@ import * as Popover from '@radix-ui/react-popover';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { debounce } from 'lodash';
+import './styles/aiToolbar.css';
 
 // 扩展 Editor 类型
 declare module '@tiptap/react' {
@@ -64,227 +65,6 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
       editor.unregisterPlugin(pluginKey);
     };
   }, [editor]);
-
-  // 添加高亮样式
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-
-    // 添加高亮和工具栏样式
-    const style = document.createElement('style');
-    style.innerHTML = `
-      .ai-processing-highlight {
-        background: linear-gradient(90deg, rgba(255, 154, 158, 0.1), rgba(250, 208, 196, 0.1), rgba(251, 194, 235, 0.1));
-        background-size: 200% 100%;
-        animation: gradient-shift 2s ease infinite;
-      }
-      
-      @keyframes gradient-shift {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
-      }
-      
-      .ai-toolbar-content {
-        animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      }
-      
-      .ai-toolbar-glass {
-        background: transparent;
-        backdrop-filter: blur(10px);
-        border: none;
-        position: relative;
-        z-index: 1;
-      }
-      
-      .ai-toolbar-glass::before {
-        content: '';
-        position: absolute;
-        inset: -1px;
-        background: linear-gradient(135deg, #ff9a9e, #fad0c4, #fad0c4, #fbc2eb, #a6c1ee);
-        background-size: 300% 300%;
-        animation: gradient-shift 8s ease infinite;
-        border-radius: 16px;
-        z-index: -1;
-        opacity: 0.7;
-      }
-      
-      .ai-toolbar-glass::after {
-        content: '';
-        position: absolute;
-        inset: 1px;
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(10px);
-        border-radius: 15px;
-        z-index: -1;
-        box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.3);
-      }
-      
-      .ai-drag-handle {
-        cursor: move;
-        user-select: none;
-        border-bottom: 1px solid rgba(229, 231, 235, 0.3);
-      }
-      
-      .magic-input {
-        background: rgba(255, 255, 255, 0.7);
-        border: 1px solid rgba(229, 231, 235, 0.5);
-        transition: all 0.2s ease;
-      }
-      
-      .magic-input:focus {
-        background: rgba(255, 255, 255, 0.9);
-        border-color: rgba(0, 0, 0, 0.1);
-        box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.05);
-      }
-      
-      .magic-btn {
-        position: relative;
-        overflow: hidden;
-        z-index: 1;
-        border-radius: 12px;
-        background-color: #000000;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        transition: all 0.2s ease;
-      }
-      
-      .magic-btn:hover {
-        background-color: #333333;
-        transform: translateY(-1px);
-      }
-      
-      .magic-btn:active {
-        background-color: #000000;
-        transform: translateY(1px);
-      }
-      
-      .simple-btn {
-        border-radius: 8px;
-        transition: all 0.2s ease;
-        padding: 6px 12px;
-      }
-      
-      .simple-btn:hover {
-        background-color: rgba(243, 244, 246, 0.8);
-      }
-      
-      .simple-btn:active {
-        background-color: rgba(229, 231, 235, 0.8);
-      }
-      
-      .ai-loading-indicator {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 2px;
-      }
-      
-      .ai-loading-indicator div {
-        width: 4px;
-        height: 4px;
-        background-color: white;
-        border-radius: 50%;
-        animation: bounce 1.4s infinite ease-in-out both;
-      }
-      
-      .ai-loading-indicator div:nth-child(1) {
-        animation-delay: -0.32s;
-      }
-      
-      .ai-loading-indicator div:nth-child(2) {
-        animation-delay: -0.16s;
-      }
-      
-      @keyframes bounce {
-        0%, 80%, 100% { transform: scale(0); }
-        40% { transform: scale(1); }
-      }
-      
-      .ai-generated-content {
-        border-top: 1px solid rgba(229, 231, 235, 0.3);
-      }
-      
-      .typing-effect {
-        display: inline-block;
-        width: 4px;
-        height: 16px;
-        background-color: #000000;
-        animation: blink 1s step-end infinite;
-        vertical-align: middle;
-      }
-      
-      @keyframes blink {
-        from, to { opacity: 1; }
-        50% { opacity: 0; }
-      }
-      
-      .sparkle {
-        position: absolute;
-        background-color: white;
-        border-radius: 50%;
-        opacity: 0;
-        animation: sparkle-fade 1.5s ease forwards;
-        pointer-events: none;
-      }
-      
-      @keyframes sparkle-fade {
-        0% { transform: scale(0); opacity: 0; }
-        50% { transform: scale(1); opacity: 0.8; }
-        100% { transform: scale(0); opacity: 0; }
-      }
-      
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-    `;
-    document.head.appendChild(style);
-
-    return () => {
-      document.head.removeChild(style);
-    };
-  }, [editor]);
-
-  // 添加拖拽相关的事件处理
-  useEffect(() => {
-    if (!isVisible) return;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!dragRef.current.isDragging) return;
-
-      const deltaX = e.clientX - dragRef.current.startX;
-      const deltaY = e.clientY - dragRef.current.startY;
-
-      setPosition(prev => ({
-        x: prev.x + deltaX,
-        y: prev.y + deltaY
-      }));
-
-      dragRef.current.startX = e.clientX;
-      dragRef.current.startY = e.clientY;
-    };
-
-    const handleMouseUp = () => {
-      dragRef.current.isDragging = false;
-      document.body.style.cursor = 'default';
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isVisible]);
-
-  // 自动聚焦输入框
-  useEffect(() => {
-    if (isVisible && inputRef.current) {
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 100);
-    }
-  }, [isVisible]);
 
   // 计算工具栏位置的函数
   const calculatePosition = useCallback((to: number) => {
@@ -437,45 +217,128 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
     };
   }, [editor, isVisible]);
 
+  // 添加拖拽相关的事件处理
+  useEffect(() => {
+    if (!isVisible) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!dragRef.current.isDragging) return;
+
+      const deltaX = e.clientX - dragRef.current.startX;
+      const deltaY = e.clientY - dragRef.current.startY;
+
+      setPosition(prev => ({
+        x: prev.x + deltaX,
+        y: prev.y + deltaY
+      }));
+
+      dragRef.current.startX = e.clientX;
+      dragRef.current.startY = e.clientY;
+    };
+
+    const handleMouseUp = () => {
+      dragRef.current.isDragging = false;
+      document.body.style.cursor = 'default';
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isVisible]);
+
+  // 自动聚焦输入框
+  useEffect(() => {
+    if (isVisible && inputRef.current) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [isVisible]);
+
   const handleInsertContent = () => {
     if (!generatedContent) return;
 
-    // 将文本按行分割并转换为节点数组
-    const nodes = generatedContent.split('\n').map(line => {
-      if (!line.trim()) {
-        return {
-          type: 'paragraph'
-        };
-      }
-      return {
-        type: 'paragraph',
-        content: [{
-          type: 'text',
-          text: line
-        }]
-      };
-    });
+    // HTML 实体解码函数
+    const decodeHtmlEntities = (text: string) => {
+      const textarea = document.createElement('textarea');
+      textarea.innerHTML = text;
+      return textarea.value;
+    };
 
-    if (selectionRef.current) {
-      const { from, to } = selectionRef.current;
-      editor
-        .chain()
-        .focus()
-        .deleteRange({ from, to })
-        .insertContent({
-          type: 'doc',
-          content: nodes
-        })
-        .run();
-    } else {
-      editor
-        .chain()
-        .focus()
-        .insertContent({
-          type: 'doc',
-          content: nodes
-        })
-        .run();
+    // 更彻底地清理生成的内容
+    let cleanedContent = generatedContent;
+    
+    // 1. 解码 HTML 实体
+    cleanedContent = decodeHtmlEntities(cleanedContent);
+    
+    // 2. 移除所有 Markdown 标记中的转义反斜杠 - 使用更全面的正则表达式
+    cleanedContent = cleanedContent.replace(/\\([\\`*_{}\[\]()#+\-.!|>~=])/g, '$1');
+    
+    // 3. 特别处理常见的 Markdown 语法
+    // 处理加粗和斜体
+    cleanedContent = cleanedContent.replace(/\\\*/g, '*');
+    cleanedContent = cleanedContent.replace(/\\_/g, '_');
+    
+    // 处理链接和图片
+    cleanedContent = cleanedContent.replace(/\\\[/g, '[');
+    cleanedContent = cleanedContent.replace(/\\\]/g, ']');
+    cleanedContent = cleanedContent.replace(/\\\(/g, '(');
+    cleanedContent = cleanedContent.replace(/\\\)/g, ')');
+    
+    // 处理代码块
+    cleanedContent = cleanedContent.replace(/\\`/g, '`');
+    
+    // 4. 处理连续的反斜杠
+    cleanedContent = cleanedContent.replace(/\\\\/g, '\\');
+    
+    // 5. 处理特殊的 HTML 标签
+    cleanedContent = cleanedContent.replace(/&lt;/g, '<');
+    cleanedContent = cleanedContent.replace(/&gt;/g, '>');
+    cleanedContent = cleanedContent.replace(/&amp;/g, '&');
+    cleanedContent = cleanedContent.replace(/&quot;/g, '"');
+    cleanedContent = cleanedContent.replace(/&#39;/g, "'");
+
+    console.log('清理后的内容:', cleanedContent);
+
+    try {
+      // 先删除选中的内容
+      if (selectionRef.current) {
+        const { from, to } = selectionRef.current;
+        editor.chain().focus().deleteRange({ from, to }).run();
+      }
+      
+      // 使用 Tiptap 的 insertContent 方法，尝试保留格式
+      editor.commands.insertContent(cleanedContent);
+    } catch (error) {
+      console.error('Error inserting content:', error);
+      
+      // 如果上述方法失败，尝试最原始的方式：直接插入纯文本
+      try {
+        // 获取当前光标位置
+        const pos = editor.state.selection.from;
+        
+        // 创建一个新的事务
+        const transaction = editor.state.tr;
+        
+        // 如果有选中内容，先删除
+        if (selectionRef.current) {
+          const { from, to } = selectionRef.current;
+          transaction.delete(from, to);
+        }
+        
+        // 直接插入纯文本
+        transaction.insertText(cleanedContent, pos);
+        
+        // 应用事务
+        editor.view.dispatch(transaction);
+      } catch (finalError) {
+        console.error('All insertion methods failed:', finalError);
+        alert('插入内容失败，请重试');
+      }
     }
 
     // 重置状态
@@ -744,7 +607,8 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
               </button>
               <button
                 onClick={handleInsertContent}
-                className="magic-btn flex items-center gap-1 px-4 py-1.5 text-xs font-medium text-white hover:bg-gray-900 rounded-lg transition-colors"
+                disabled={isLoading}
+                className={`magic-btn flex items-center gap-1 px-4 py-1.5 text-xs font-medium text-white hover:bg-gray-900 rounded-lg transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                 aria-label="插入"
               >
                 <Check className="w-3.5 h-3.5" />
