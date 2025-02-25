@@ -29,7 +29,7 @@ import { FontSize } from './FontSize';
 import { InlineLinkEditor } from './InlineLinkEditor';
 import { useState, useCallback, useEffect } from 'react';
 import { ConfirmDialog } from './ConfirmDialog';
-import htmlDocx from 'html-docx-js/dist/html-docx';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table as DocxTable, TableRow as DocxTableRow, TableCell as DocxTableCell, BorderStyle, ISectionOptions, IStylesOptions } from 'docx';
 import debounce from 'lodash/debounce';
 import { BlockHandle } from './extensions/BlockHandle';
 import { TableMenu } from './TableMenu';
@@ -48,6 +48,10 @@ interface EditorProps {
   content?: string;
   onChange?: (content: string) => void;
   placeholder?: string;
+}
+
+interface DocumentSection extends ISectionOptions {
+  children: (Paragraph | DocxTable)[];
 }
 
 // 修改生成目录的辅助函数
@@ -321,89 +325,311 @@ export const Editor = ({ content = '', onChange, placeholder = '输入 "/" 来�
     }
   }, [editor, saveContent]);
 
-  const handleConfirmSave = useCallback(() => {
+  const handleConfirmSave = useCallback(async () => {
     if (!editor) return;
     
     // 处理文档标题
     const documentTitle = title.trim() || '未命名文档';
     
-    // 获取编辑器的HTML内容
-    const content = editor.getHTML();
-    
-    // 添加基本样式
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html lang="zh">
-      <head>
-        <meta charset="UTF-8">
-        <title>${documentTitle}</title>
-        <style>
-          body {
-            font-family: "Microsoft YaHei", sans-serif;
-            line-height: 1.6;
-            margin: 1in;
+    try {
+      // 将编辑器内容转换为 docx 格式
+      const content = editor.getJSON();
+      const children: Paragraph[] = [
+        new Paragraph({
+          text: documentTitle,
+          heading: HeadingLevel.HEADING_1,
+          spacing: {
+            after: 200
           }
-          table {
-            border-collapse: collapse;
-            width: 100%;
-            margin: 1em 0;
-          }
-          th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-          }
-          th {
-            background-color: #f5f5f5;
-          }
-          img {
-            max-width: 100%;
-            height: auto;
-          }
-          blockquote {
-            border-left: 4px solid #ddd;
-            margin: 1em 0;
-            padding-left: 1em;
-            color: #666;
-          }
-          pre {
-            background-color: #f5f5f5;
-            padding: 1em;
-            border-radius: 4px;
-            overflow-x: auto;
-          }
-          code {
-            background-color: #f5f5f5;
-            padding: 0.2em 0.4em;
-            border-radius: 3px;
-          }
-        </style>
-      </head>
-      <body>
-        ${content}
-      </body>
-      </html>
-    `;
+        })
+      ];
 
-    // 转换为Word文档
-    const docx = htmlDocx.asBlob(htmlContent);
-    
-    // 创建下载链接
-    const url = window.URL.createObjectURL(docx);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${documentTitle}.docx`;
-    
-    // 触发下载
-    document.body.appendChild(a);
-    a.click();
-    
-    // 清理
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-    
-    // 更新保存时间
-    setLastSaveTime(new Date().toLocaleTimeString());
-    setIsConfirmDialogOpen(false);
+      // 递归处理内容
+      const processTextRun = (child: any): TextRun => {
+        if (child.type === 'text') {
+          const textStyle: any = {
+            text: child.text || '',
+          };
+
+          // 辅助函数：处理颜色转换
+          const processColor = (inputColor: string): string => {
+            let color = inputColor;
+            // 如果是 RGB 格式，转换为十六进制
+            if (color.startsWith('rgb')) {
+              const rgb = color.match(/\d+/g);
+              if (rgb && rgb.length >= 3) {
+                color = '#' + rgb.slice(0, 3).map((x: string) => 
+                  parseInt(x).toString(16).padStart(2, '0')
+                ).join('');
+              }
+            }
+            // 移除 # 号
+            color = color.replace('#', '');
+            // 确保是6位十六进制
+            if (color.length === 3) {
+              color = color.split('').map((c: string) => c + c).join('');
+            }
+            // 确保颜色值是小写的
+            return color.toLowerCase();
+          };
+
+          // 处理文本标记
+          if (child.marks) {
+            // 处理加粗
+            if (child.marks.some((mark: any) => mark.type === 'bold')) {
+              textStyle.bold = true;
+            }
+
+            // 处理斜体
+            if (child.marks.some((mark: any) => mark.type === 'italic')) {
+              textStyle.italics = true;
+            }
+
+            // 处理下划线
+            if (child.marks.some((mark: any) => mark.type === 'underline')) {
+              textStyle.underline = {};
+            }
+
+            // 处理删除线
+            if (child.marks.some((mark: any) => mark.type === 'strike')) {
+              textStyle.strike = true;
+            }
+
+            // 处理文本颜色
+            const colorMark = child.marks.find((mark: any) => mark.type === 'textStyle' && mark.attrs.color);
+            if (colorMark && colorMark.attrs.color) {
+              const color = processColor(colorMark.attrs.color);
+              if (color) {
+                textStyle.color = color;
+              }
+            }
+
+            // 处理背景色
+            const textStyleMark = child.marks.find((mark: any) => mark.type === 'textStyle' && mark.attrs.backgroundColor);
+            console.log('检查文本节点:', {
+              文本内容: child.text,
+              所有标记: child.marks,
+              文本样式标记: textStyleMark
+            });
+
+            if (textStyleMark && textStyleMark.attrs.backgroundColor) {
+              const color = processColor(textStyleMark.attrs.backgroundColor);
+              console.log('处理背景色:', {
+                原始颜色: textStyleMark.attrs.backgroundColor,
+                处理后颜色: color,
+                标记类型: textStyleMark.type,
+                完整标记: textStyleMark
+              });
+              
+              // 将十六进制颜色映射到 docx 支持的高亮颜色
+              const getHighlightColor = (hexColor: string): string => {
+                // docx 支持的高亮颜色
+                const highlightColors: { [key: string]: string } = {
+                  'yellow': 'ffff00',
+                  'green': '00ff00',
+                  'cyan': '00ffff',
+                  'magenta': 'ff00ff',
+                  'blue': '0000ff',
+                  'red': 'ff0000',
+                  'darkBlue': '000080',
+                  'darkCyan': '008080',
+                  'darkGreen': '008000',
+                  'darkMagenta': '800080',
+                  'darkRed': '800000',
+                  'darkYellow': '808000',
+                  'darkGray': '808080',
+                  'lightGray': 'c0c0c0',
+                  'black': '000000'
+                };
+
+                // 找到最接近的颜色
+                let minDistance = Infinity;
+                let closestColor = 'yellow'; // 默认黄色
+
+                const r = parseInt(hexColor.slice(0, 2), 16);
+                const g = parseInt(hexColor.slice(2, 4), 16);
+                const b = parseInt(hexColor.slice(4, 6), 16);
+
+                for (const [name, hex] of Object.entries(highlightColors)) {
+                  const r2 = parseInt(hex.slice(0, 2), 16);
+                  const g2 = parseInt(hex.slice(2, 4), 16);
+                  const b2 = parseInt(hex.slice(4, 6), 16);
+
+                  const distance = Math.sqrt(
+                    Math.pow(r - r2, 2) + 
+                    Math.pow(g - g2, 2) + 
+                    Math.pow(b - b2, 2)
+                  );
+
+                  if (distance < minDistance) {
+                    minDistance = distance;
+                    closestColor = name;
+                  }
+                }
+
+                return closestColor;
+              };
+
+              if (color) {
+                // 使用最接近的预定义高亮颜色
+                const highlightColor = getHighlightColor(color);
+                textStyle.highlight = highlightColor;
+                
+                console.log('设置的最终文本样式:', JSON.stringify(textStyle, null, 2));
+              }
+            }
+
+            // 处理字体大小
+            const fontSizeMark = child.marks.find((mark: any) => mark.type === 'textStyle' && mark.attrs.fontSize);
+            if (fontSizeMark) {
+              // 将像素值转换为磅值
+              const sizeInPt = Math.round(parseInt(fontSizeMark.attrs.fontSize) * 0.75);
+              textStyle.size = sizeInPt * 2; // docx 使用 half-points
+            }
+          }
+
+          return new TextRun(textStyle);
+        }
+        return new TextRun({ text: '' });
+      };
+
+      const processNode = (node: any): Paragraph | Paragraph[] | null => {
+        if (node.type === 'paragraph') {
+          return new Paragraph({
+            children: node.content?.map(processTextRun) || [],
+            style: node.attrs?.textAlign ? node.attrs.textAlign : undefined,
+            spacing: {
+              before: 200,
+              after: 200
+            }
+          });
+        } else if (node.type === 'heading') {
+          const headingLevels = {
+            1: HeadingLevel.HEADING_1,
+            2: HeadingLevel.HEADING_2,
+            3: HeadingLevel.HEADING_3,
+            4: HeadingLevel.HEADING_4,
+            5: HeadingLevel.HEADING_5,
+            6: HeadingLevel.HEADING_6
+          };
+          return new Paragraph({
+            children: node.content?.map(processTextRun) || [],
+            heading: headingLevels[node.attrs.level as keyof typeof headingLevels],
+            style: node.attrs?.textAlign ? node.attrs.textAlign : undefined,
+          });
+        } else if (node.type === 'bulletList') {
+          return node.content?.map((item: any) => {
+            const listItemContent = item.content?.[0]?.content?.map(processTextRun) || [];
+            return new Paragraph({
+              children: listItemContent,
+              bullet: {
+                level: 0
+              },
+              style: item.attrs?.textAlign ? item.attrs.textAlign : undefined,
+              spacing: {
+                before: 100,
+                after: 100
+              }
+            });
+          }) || [];
+        } else if (node.type === 'orderedList') {
+          return node.content?.map((item: any) => {
+            const listItemContent = item.content?.[0]?.content?.map(processTextRun) || [];
+            return new Paragraph({
+              children: listItemContent,
+              numbering: {
+                reference: 'default-numbering',
+                level: 0
+              },
+              style: item.attrs?.textAlign ? item.attrs.textAlign : undefined,
+              spacing: {
+                before: 100,
+                after: 100
+              }
+            });
+          }) || [];
+        }
+        return null;
+      };
+
+      // 处理所有节点
+      content.content?.forEach((node: any) => {
+        const processed = processNode(node);
+        if (Array.isArray(processed)) {
+          children.push(...processed);
+        } else if (processed) {
+          children.push(processed);
+        }
+      });
+
+      // 创建文档
+      const doc = new Document({
+        styles: {
+          default: {
+            document: {
+              run: {
+                font: 'Microsoft YaHei',
+                size: 24,
+              },
+              paragraph: {
+                spacing: {
+                  line: 360,
+                },
+              },
+            },
+          },
+        },
+        numbering: {
+          config: [{
+            reference: 'default-numbering',
+            levels: [{
+              level: 0,
+              format: 'decimal',
+              text: '%1.',
+              alignment: 'start',
+              style: {
+                paragraph: {
+                  indent: { left: 720, hanging: 360 }
+                }
+              }
+            }]
+          }]
+        },
+        sections: [{
+          properties: {},
+          children
+        }]
+      });
+
+      // 生成文档
+      const buffer = await Packer.toBuffer(doc);
+      
+      // 创建 Blob
+      const blob = new Blob([buffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+      });
+
+      // 创建下载链接
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${documentTitle}.docx`;
+      
+      // 触发下载
+      document.body.appendChild(a);
+      a.click();
+      
+      // 清理
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      // 更新保存时间
+      setLastSaveTime(new Date().toLocaleTimeString());
+      setIsConfirmDialogOpen(false);
+    } catch (error) {
+      console.error('导出文档失败:', error);
+      setToast({ message: '导出失败，请重试', type: 'error' });
+    }
   }, [editor, title]);
 
   const handleLinkClick = useCallback(() => {
