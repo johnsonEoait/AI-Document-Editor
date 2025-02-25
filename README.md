@@ -147,17 +147,44 @@ docker run -p 3000:3000 -e OPENAI_API_KEY=your_api_key_here ai-doc-editor
 
 ## 技术栈
 
-- **前端框架**: [Next.js](https://nextjs.org/) 15.x
-- **UI 库**: [React](https://reactjs.org/) 19.x
-- **编辑器核心**: [TipTap](https://tiptap.dev/) 2.x
-- **样式**: [Tailwind CSS](https://tailwindcss.com/) 3.x
-- **动画**: [Framer Motion](https://www.framer.com/motion/)
-- **文档处理**: [docx](https://docx.js.org/)
+- **前端框架**: 
+  - [Next.js](https://nextjs.org/) 15.1.7
+  - [React](https://reactjs.org/) 19.0.0
+  - [TypeScript](https://www.typescriptlang.org/) 5.x
+
+- **编辑器核心**: 
+  - [TipTap](https://tiptap.dev/) 2.11.5
+  - [ProseMirror](https://prosemirror.net/) 系列库
+  - 多种 TipTap 扩展（表格、代码块、任务列表等）
+
+- **样式与UI**: 
+  - [Tailwind CSS](https://tailwindcss.com/) 3.4.1
+  - [Radix UI](https://www.radix-ui.com/) 组件库
+  - [Lucide React](https://lucide.dev/) 图标库
+  - [Tippy.js](https://atomiks.github.io/tippyjs/) 提示框
+  - [Framer Motion](https://www.framer.com/motion/) 动画效果
+
+- **文档处理**: 
+  - [docx](https://docx.js.org/) 9.2.0
+  - [html-to-docx](https://github.com/privateOmega/html-to-docx) 1.8.0
+  - [markdown-it](https://github.com/markdown-it/markdown-it) 14.1.0
+  - [html2canvas](https://html2canvas.hertzen.com/) 1.4.1
+  - [jspdf](https://github.com/parallax/jspdf) 3.0.0
+
+- **数据处理**:
+  - [Lodash](https://lodash.com/) 4.17.21
+  - [@tanstack/react-table](https://tanstack.com/table/latest) 8.21.2
+
 - **AI 集成**: 
+  - [OpenAI API 客户端](https://github.com/openai/openai-node) 4.85.4
   - 支持 OpenAI 格式的各类 AI 接口
   - 当前使用 Grok-2 模型（有 150 美金余额）
   - 后续将切换至智谱 GLM-4-Flash
-- **UI 组件**: [Radix UI](https://www.radix-ui.com/)
+
+- **开发工具**:
+  - [ESLint](https://eslint.org/) 9.x
+  - [PostCSS](https://postcss.org/) 8.x
+  - [TurboPack](https://turbo.build/pack) 高性能打包工具
 
 ## 路线图
 
