@@ -228,7 +228,7 @@ export const Editor = ({
     injectCSS: false,
     editorProps: {
       attributes: {
-        class: 'prose prose-sm focus:outline-none min-h-[500px] px-8 py-6 markdown-body relative',
+        class: 'prose prose-sm focus:outline-none min-h-[500px] px-16 py-6 markdown-body relative',
       },
     },
     parseOptions: {
@@ -397,7 +397,7 @@ export const Editor = ({
         position={dialogPosition ?? undefined}
       />
       
-      <div className="max-w-7xl mx-auto relative editor-container">
+      <div className="max-w-full mx-auto relative editor-container">
         <EditorHeader
           title={title}
           onTitleChange={handleTitleChange}
@@ -410,7 +410,7 @@ export const Editor = ({
         />
         
         <div className="pt-[140px] pb-16 min-h-[calc(100vh-180px)] bg-white">
-          <div className="relative max-w-5xl mx-auto">
+          <div className="relative max-w-screen-2xl mx-auto">
             <TableOfContents
               isVisible={showToc}
               onClose={() => setShowToc(false)}
@@ -420,10 +420,10 @@ export const Editor = ({
             />
             
             {/* 主编辑区域 */}
-            <div className="px-6">
+            <div className="px-16 md:px-24 lg:px-32">
               <EditorContent 
                 editor={editor}
-                className="editor-content relative prose prose-sm focus:outline-none min-h-[calc(100vh-280px)]"
+                className="editor-content relative prose prose-sm focus:outline-none min-h-[calc(100vh-280px)] max-w-[1600px] mx-auto"
               />
               {!isLinkEditorOpen && (
                 <FloatingAIToolbar 

@@ -4,6 +4,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 覆盖prose类的最大宽度限制 */
+.prose {
+  max-width: none !important;
+}
+
 @keyframes slideIn {
   from {
     transform: translateY(-100%);
