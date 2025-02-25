@@ -86,7 +86,7 @@ export async function POST(request: Request) {
       {
         role: 'system',
         content: `你是一个专业的 AI 助手,擅长处理各种文本任务。请根据用户的提示词处理所提供的文本。
-保持输出的专业性和准确性，请直接输出markdown格式，不需要包裹在markdown代码块中,只支持、标题、表格格式。`
+保持输出的专业性和准确性，请直接输出markdown格式，不需要包裹在markdown代码块中,支持列表、标题、表格等格式，请直接输出，不需要做任何解释说明。`
       },
       {
         role: 'user',
@@ -97,7 +97,7 @@ export async function POST(request: Request) {
         role: 'system',
         content: `你是一个专业的 AI 助手,擅长生成各种类型的内容。请根据用户的提示词生成内容。
 保持输出的专业性和准确性。
-直接输出生成的内容,不要包含任何解释或说明，请直接输出markdown格式，不需要包裹在markdown代码块中,支持标题、表格格式。`
+直接输出生成的内容,不要包含任何解释或说明，请直接输出markdown格式，不需要包裹在markdown代码块中,支持标题、列表、表格等格式。`
       },
       {
         role: 'user',

@@ -363,8 +363,63 @@ const processNode = (node: any): Paragraph | Paragraph[] | null => {
       5: HeadingLevel.HEADING_5,
       6: HeadingLevel.HEADING_6
     };
+    
+    // 确保标题文本为黑色
+    const headingChildren = node.content?.map((child: any) => {
+      if (child.type === 'text') {
+        const textStyle: any = {
+          text: child.text || '',
+          color: '000000', // 强制设置标题颜色为黑色
+        };
+        
+        // 处理文本标记
+        if (child.marks) {
+          // 处理加粗
+          if (child.marks.some((mark: any) => mark.type === 'bold')) {
+            textStyle.bold = true;
+          }
+
+          // 处理斜体
+          if (child.marks.some((mark: any) => mark.type === 'italic')) {
+            textStyle.italics = true;
+          }
+
+          // 处理下划线
+          if (child.marks.some((mark: any) => mark.type === 'underline')) {
+            textStyle.underline = {};
+          }
+
+          // 处理删除线
+          if (child.marks.some((mark: any) => mark.type === 'strike')) {
+            textStyle.strike = true;
+          }
+          
+          // 处理字体大小
+          const fontSizeMark = child.marks.find((mark: any) => mark.type === 'textStyle' && mark.attrs.fontSize);
+          if (fontSizeMark) {
+            const fontSize = processFontSize(fontSizeMark);
+            if (fontSize) {
+              textStyle.size = fontSize;
+            }
+          }
+          
+          // 处理背景色
+          const textStyleMark = child.marks.find((mark: any) => mark.type === 'textStyle' && mark.attrs.backgroundColor);
+          if (textStyleMark) {
+            const highlightColor = processHighlight(textStyleMark);
+            if (highlightColor) {
+              textStyle.highlight = highlightColor;
+            }
+          }
+        }
+        
+        return new TextRun(textStyle);
+      }
+      return processTextRun(child);
+    }) || [];
+    
     return new Paragraph({
-      children: node.content?.map(processTextRun) || [],
+      children: headingChildren,
       heading: headingLevels[node.attrs.level as keyof typeof headingLevels],
       style: node.attrs?.textAlign ? node.attrs.textAlign : undefined,
     });
@@ -416,7 +471,14 @@ export const exportToDocx = async (editor: Editor, title: string, includeTitle: 
   if (includeTitle) {
     children.push(
       new Paragraph({
-        text: documentTitle,
+        children: [
+          new TextRun({
+            text: documentTitle,
+            color: '000000', // 强制设置文档标题颜色为黑色
+            bold: true,
+            size: 32, // 稍微大一点的字体大小
+          })
+        ],
         heading: HeadingLevel.HEADING_1,
         spacing: {
           after: 200
@@ -444,11 +506,54 @@ export const exportToDocx = async (editor: Editor, title: string, includeTitle: 
           run: {
             font: 'Microsoft YaHei',
             size: 24,
+            color: '000000', // 默认文本颜色为黑色
           },
           paragraph: {
             spacing: {
               line: 360,
             },
+          },
+        },
+        heading1: {
+          run: {
+            color: '000000', // 一级标题颜色为黑色
+            bold: true,
+            size: 32,
+          },
+        },
+        heading2: {
+          run: {
+            color: '000000', // 二级标题颜色为黑色
+            bold: true,
+            size: 28,
+          },
+        },
+        heading3: {
+          run: {
+            color: '000000', // 三级标题颜色为黑色
+            bold: true,
+            size: 26,
+          },
+        },
+        heading4: {
+          run: {
+            color: '000000', // 四级标题颜色为黑色
+            bold: true,
+            size: 24,
+          },
+        },
+        heading5: {
+          run: {
+            color: '000000', // 五级标题颜色为黑色
+            bold: true,
+            size: 22,
+          },
+        },
+        heading6: {
+          run: {
+            color: '000000', // 六级标题颜色为黑色
+            bold: true,
+            size: 20,
           },
         },
       },
