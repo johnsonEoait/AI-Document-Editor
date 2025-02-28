@@ -1,241 +1,241 @@
-# AI 文档编辑器
+# AI Document Editor
 
 <p align="center">
-  <strong>一个现代化的、AI驱动的富文本编辑器，专为文档创作和协作设计</strong>
+  <strong>A modern, AI-powered rich text editor designed for document creation and collaboration</strong>
 </p>
 
 <p align="center">
-  <strong>由 <a href="https://www.eoait.com" target="_blank">广东星时代网络技术有限公司</a> 开发</strong>
+  <strong>Developed by <a href="https://www.eoait.com" target="_blank">Guangdong Star Era Network Technology Co., Ltd.</a></strong>
 </p>
 
 <p align="center">
-  <a href="https://aidoc.eoait.com" target="_blank">在线演示</a> •
-  <a href="#特性">特性</a> •
-  <a href="#快速开始">快速开始</a> •
-  <a href="#使用指南">使用指南</a> •
-  <a href="#技术栈">技术栈</a> •
-  <a href="#贡献指南">贡献指南</a> •
-  <a href="#许可证">许可证</a>
+  <a href="https://aidoc.eoait.com" target="_blank">Live Demo</a> •
+  <a href="#features">Features</a> •
+  <a href="#quick-start">Quick Start</a> •
+  <a href="#user-guide">User Guide</a> •
+  <a href="#tech-stack">Tech Stack</a> •
+  <a href="#contribution-guidelines">Contribution</a> •
+  <a href="#license">License</a>
 </p>
 
 <p align="center">
-  <strong>仓库地址：<a href="https://gitee.com/eoait2024/open-source-ai-editor" target="_blank">https://gitee.com/eoait2024/open-source-ai-editor</a></strong>
+  <strong>Repository: <a href="https://gitee.com/eoait2024/open-source-ai-editor" target="_blank">https://gitee.com/eoait2024/open-source-ai-editor</a></strong>
 </p>
 
 <p align="center">
-  <strong><a href="README_EN.md">English Documentation</a></strong>
+  <strong><a href="README.md">中文文档</a></strong>
 </p>
 
 <p align="center">
-  <img src="gitassets/总体预览.png" alt="编辑器总体预览" width="80%" />
+  <img src="gitassets/总体预览.png" alt="Editor Overview" width="80%" />
 </p>
 
-## 特性
+## Features
 
-🚀 **现代化编辑体验**
-- 基于 TipTap 和 ProseMirror 的强大富文本编辑功能
-- 支持 Markdown 语法和快捷键
-- 丝滑的编辑体验和动画效果
-- 丰富的富文本编辑功能，满足各种文档需求
-- 命令菜单快速插入新的内容块
+🚀 **Modern Editing Experience**
+- Powerful rich text editing based on TipTap and ProseMirror
+- Support for Markdown syntax and shortcuts
+- Smooth editing experience with animations
+- Rich text editing features for all document needs
+- Command menu for quick insertion of new content blocks
 
-🤖 **AI 辅助功能**
-- 内置 AI 助手，帮助生成和改写文本
-- 支持自定义指令进行内容生成和改写
-- 炫酷的 AI 内容插入动画效果
-- 兼容 OpenAI 格式的各类 AI 模型接口
+🤖 **AI Assistance**
+- Built-in AI assistant to help generate and rewrite text
+- Support for custom instructions for content generation and rewriting
+- Cool AI content insertion animation effects
+- Compatible with various AI model interfaces in OpenAI format
 
 <p align="center">
-  <img src="gitassets/AI助手预览.png" alt="AI助手预览" width="40%" />
-  <img src="gitassets/AI助手改写预览.png" alt="AI助手改写预览" width="40%" />
+  <img src="gitassets/AI助手预览.png" alt="AI Assistant Preview" width="40%" />
+  <img src="gitassets/AI助手改写预览.png" alt="AI Rewrite Preview" width="40%" />
 </p>
 
-📝 **全面的文档功能**
-- 支持标题、列表、表格、代码块等丰富元素
-- 自动生成目录，支持折叠和展开
-- 文本高亮、颜色和字体大小调整
-- 查找和替换功能
-- 字数统计功能
+📝 **Comprehensive Document Features**
+- Support for headings, lists, tables, code blocks, and more
+- Automatic table of contents generation with collapse/expand support
+- Text highlighting, color, and font size adjustment
+- Find and replace functionality
+- Word count feature
 
-💾 **便捷的使用体验**
-- 免登录即可使用，降低使用门槛
-- 自动保存功能，不怕内容丢失
-- 导出为 Word 文档 (.docx)
-- 文档标题管理
+💾 **Convenient User Experience**
+- No login required, lowering the barrier to use
+- Auto-save functionality to prevent content loss
+- Export to Word document (.docx)
+- Document title management
 
 <p align="center">
-  <img src="gitassets/插入新的块预览.png" alt="插入新的块预览" width="40%" />
-  <img src="gitassets/AI生成内容预览.png" alt="AI生成内容预览" width="40%" />
+  <img src="gitassets/插入新的块预览.png" alt="Insert New Block Preview" width="40%" />
+  <img src="gitassets/AI生成内容预览.png" alt="AI Generated Content Preview" width="40%" />
 </p>
 
-🎨 **美观的用户界面**
-- 基于 Tailwind CSS 的现代设计
-- 响应式布局，适配各种设备
-- 自定义主题支持
+🎨 **Beautiful User Interface**
+- Modern design based on Tailwind CSS
+- Responsive layout for various devices
+- Custom theme support
 
-## 快速开始
+## Quick Start
 
-### 前提条件
+### Prerequisites
 
-- Node.js 18.0.0 或更高版本
-- pnpm 8.0.0 或更高版本
+- Node.js 18.0.0 or higher
+- pnpm 8.0.0 or higher
 
-### 安装
+### Installation
 
-1. 克隆仓库
+1. Clone the repository
 ```bash
 git clone https://gitee.com/eoait2024/open-source-ai-editor.git
 cd open-source-ai-editor
 ```
 
-2. 安装依赖
+2. Install dependencies
 ```bash
 pnpm install
 ```
 
-3. 配置环境变量
+3. Configure environment variables
 ```bash
 cp .env.example .env
 ```
-编辑 `.env` 文件，添加必要的 API 密钥（支持 OpenAI 格式的各类 AI 接口）。
+Edit the `.env` file to add necessary API keys (supports various AI interfaces in OpenAI format).
 
-4. 启动开发服务器
+4. Start the development server
 ```bash
 pnpm dev
 ```
 
-5. 在浏览器中打开 [http://localhost:3000](http://localhost:3000)
+5. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-### Docker 部署
+### Docker Deployment
 
-我们也提供了 Docker 部署方式，详情请参考 [DOCKER_IMAGE_README.md](DOCKER_IMAGE_README.md)。
+We also provide Docker deployment options. For details, please refer to [DOCKER_IMAGE_README.md](DOCKER_IMAGE_README.md).
 
-1. 构建 Docker 镜像
+1. Build Docker image
 ```bash
 docker build -t ai-doc-editor .
 ```
 
-2. 运行 Docker 容器
+2. Run Docker container
 ```bash
 docker run -p 3000:3000 -e OPENAI_API_KEY=your_api_key_here ai-doc-editor
 ```
 
-## 使用指南
+## User Guide
 
-### 基本编辑
+### Basic Editing
 
-- 使用工具栏格式化文本
-- 支持快捷键（Ctrl+B 加粗，Ctrl+I 斜体等）
-- 输入 `/` 触发命令菜单，快速插入新的内容块
+- Use the toolbar to format text
+- Support for shortcuts (Ctrl+B for bold, Ctrl+I for italic, etc.)
+- Type `/` to trigger the command menu for quick insertion of new content blocks
 
-### AI 功能
+### AI Features
 
-- 选中文本后按 `Alt + /` 触发 AI 助手
-- AI 可以帮助生成新内容或改写选中的文本
-- 支持自定义 AI 指令，满足个性化需求
-- 生成的内容会以平滑的动画效果插入
+- Select text and press `Alt + /` to trigger the AI assistant
+- AI can help generate new content or rewrite selected text
+- Support for custom AI instructions to meet personalized needs
+- Generated content is inserted with smooth animation effects
 
-### 文档管理
+### Document Management
 
-- 免登录即可使用，数据自动保存在本地
-- 支持生成和更新目录
-- 查找和替换功能（Ctrl+F）
-- 表格编辑和管理
-- 字数统计功能
+- No login required, data automatically saved locally
+- Support for generating and updating table of contents
+- Find and replace functionality (Ctrl+F)
+- Table editing and management
+- Word count feature
 
-### 导出文档
+### Export Document
 
-- 点击工具栏中的导出按钮
-- 选择是否包含文档标题
-- 文档将以 .docx 格式下载
+- Click the export button in the toolbar
+- Choose whether to include the document title
+- Document will be downloaded in .docx format
 
-## 技术栈
+## Tech Stack
 
-- **前端框架**: 
+- **Frontend Framework**: 
   - [Next.js](https://nextjs.org/) 15.1.7
   - [React](https://reactjs.org/) 19.0.0
   - [TypeScript](https://www.typescriptlang.org/) 5.x
 
-- **编辑器核心**: 
+- **Editor Core**: 
   - [TipTap](https://tiptap.dev/) 2.11.5
-  - [ProseMirror](https://prosemirror.net/) 系列库
-  - 多种 TipTap 扩展（表格、代码块、任务列表等）
+  - [ProseMirror](https://prosemirror.net/) libraries
+  - Various TipTap extensions (tables, code blocks, task lists, etc.)
 
-- **样式与UI**: 
+- **Styling & UI**: 
   - [Tailwind CSS](https://tailwindcss.com/) 3.4.1
-  - [Radix UI](https://www.radix-ui.com/) 组件库
-  - [Lucide React](https://lucide.dev/) 图标库
-  - [Framer Motion](https://www.framer.com/motion/) 动画效果
+  - [Radix UI](https://www.radix-ui.com/) component library
+  - [Lucide React](https://lucide.dev/) icon library
+  - [Framer Motion](https://www.framer.com/motion/) animation effects
 
-- **文档处理**: 
+- **Document Processing**: 
   - [docx](https://docx.js.org/) 9.2.0
   - [markdown-it](https://github.com/markdown-it/markdown-it) 14.1.0
 
-- **数据处理**:
+- **Data Processing**:
   - [Lodash](https://lodash.com/) 4.17.21
   - [@tanstack/react-table](https://tanstack.com/table/latest) 8.21.2
 
-- **AI 集成**: 
-  - [OpenAI API 客户端](https://github.com/openai/openai-node) 4.85.4
-  - 支持 OpenAI 格式的各类 AI 接口
-  - 当前使用 Grok-2 模型（有 150 美金余额）
-  - 后续将切换至智谱 GLM-4-Flash
+- **AI Integration**: 
+  - [OpenAI API Client](https://github.com/openai/openai-node) 4.85.4
+  - Support for various AI interfaces in OpenAI format
+  - Currently using Grok-2 model (with $150 balance)
+  - Will switch to Zhipu GLM-4-Flash in the future
 
-- **开发工具**:
+- **Development Tools**:
   - [ESLint](https://eslint.org/) 9.x
   - [PostCSS](https://postcss.org/) 8.x
-  - [TurboPack](https://turbo.build/pack) 高性能打包工具
+  - [TurboPack](https://turbo.build/pack) high-performance bundler
 
-## 路线图
+## Roadmap
 
-以下是我们计划在下一版本中添加的功能：
+Here are the features we plan to add in the next version:
 
-- [ ] 块句柄支持（拖拽调整文档结构）
-- [ ] 数据可视化功能
-- [ ] 自定义 AI 模型配置
-- [ ] 暗色模式支持
-- [ ] 协作编辑功能
-- [ ] 更多导出格式（PDF、Markdown  ）
-- [ ] 图片上传和管理
-- [ ] 版本历史和回滚
-- [ ] 图像生成功能
+- [ ] Block handle support (drag to adjust document structure)
+- [ ] Data visualization features
+- [ ] Custom AI model configuration
+- [ ] Dark mode support
+- [ ] Collaborative editing
+- [ ] More export formats (PDF, Markdown)
+- [ ] Image upload and management
+- [ ] Version history and rollback
+- [ ] Image generation features
 
-## 贡献指南
+## Contribution Guidelines
 
-我们欢迎所有形式的贡献，无论是新功能、bug 修复还是文档改进。
+We welcome all forms of contribution, whether it's new features, bug fixes, or documentation improvements.
 
-1. Fork 这个仓库
-2. 创建你的特性分支 (`git checkout -b feature/amazing-feature`)
-3. 提交你的更改 (`git commit -m 'Add some amazing feature'`)
-4. 推送到分支 (`git push origin feature/amazing-feature`)
-5. 开启一个 Pull Request
+1. Fork this repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-请确保你的代码遵循项目的代码风格和最佳实践。
+Please ensure your code follows the project's code style and best practices.
 
-## 许可证
+## License
 
-本项目采用修改版 MIT 许可证 - 详情请参阅 [LICENSE](LICENSE) 文件。该许可证在标准MIT许可证的基础上增加了以下限制：
+This project uses a modified MIT license - see the [LICENSE](LICENSE) file for details. This license adds the following restrictions to the standard MIT license:
 
-- 修改必须明确标注
-- 必须保留原始归属和版权声明
-- 特定商业用途需获得书面许可
-- 专利使用需获取必要许可
+- Modifications must be clearly marked
+- Original attribution and copyright notices must be retained
+- Specific commercial uses require written permission
+- Patent use requires necessary licenses
 
-版权所有 © 2023-2024 <a href="https://www.eoait.com" target="_blank">广东星时代网络技术有限公司</a>
+Copyright © 2023-2024 <a href="https://www.eoait.com" target="_blank">Guangdong Star Era Network Technology Co., Ltd.</a>
 
-## 联系我们
+## Contact Us
 
-如果您有任何问题或建议，请通过以下方式联系我们：
+If you have any questions or suggestions, please contact us through:
 
-- 官方网站：[https://www.eoait.com](https://www.eoait.com)
-- 在线演示：[https://aidoc.eoait.com](https://aidoc.eoait.com)
-- 问题反馈：请发送邮件至 [johnson@eoait.com](mailto:johnson@eoait.com) 或在 [Gitee Issues](https://gitee.com/eoait2024/open-source-ai-editor/issues) 提交
+- Official Website: [https://www.eoait.com](https://www.eoait.com)
+- Live Demo: [https://aidoc.eoait.com](https://aidoc.eoait.com)
+- Feedback: Please send an email to [johnson@eoait.com](mailto:johnson@eoait.com) or submit an issue on [Gitee Issues](https://gitee.com/eoait2024/open-source-ai-editor/issues)
 
 ---
 
 <p align="center">
-  <strong><a href="https://www.eoait.com" target="_blank">广东星时代网络技术有限公司</a></strong> 出品
+  <strong>Made by <a href="https://www.eoait.com" target="_blank">Guangdong Star Era Network Technology Co., Ltd.</a></strong>
 </p>
 <p align="center">
-  用 ❤️ 制作
-</p>
+  Made with ❤️
+</p> 
