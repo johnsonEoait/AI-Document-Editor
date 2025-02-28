@@ -23,6 +23,10 @@
 </p>
 
 <p align="center">
+  <strong><a href="README_EN.md">English Documentation</a></strong>
+</p>
+
+<p align="center">
   <img src="gitassets/总体预览.png" alt="编辑器总体预览" width="80%" />
 </p>
 
@@ -161,15 +165,11 @@ docker run -p 3000:3000 -e OPENAI_API_KEY=your_api_key_here ai-doc-editor
   - [Tailwind CSS](https://tailwindcss.com/) 3.4.1
   - [Radix UI](https://www.radix-ui.com/) 组件库
   - [Lucide React](https://lucide.dev/) 图标库
-  - [Tippy.js](https://atomiks.github.io/tippyjs/) 提示框
   - [Framer Motion](https://www.framer.com/motion/) 动画效果
 
 - **文档处理**: 
   - [docx](https://docx.js.org/) 9.2.0
-  - [html-to-docx](https://github.com/privateOmega/html-to-docx) 1.8.0
   - [markdown-it](https://github.com/markdown-it/markdown-it) 14.1.0
-  - [html2canvas](https://html2canvas.hertzen.com/) 1.4.1
-  - [jspdf](https://github.com/parallax/jspdf) 3.0.0
 
 - **数据处理**:
   - [Lodash](https://lodash.com/) 4.17.21
@@ -195,11 +195,10 @@ docker run -p 3000:3000 -e OPENAI_API_KEY=your_api_key_here ai-doc-editor
 - [ ] 自定义 AI 模型配置
 - [ ] 暗色模式支持
 - [ ] 协作编辑功能
-- [ ] 更多导出格式（PDF、Markdown）
+- [ ] 更多导出格式（PDF、Markdown  ）
 - [ ] 图片上传和管理
 - [ ] 版本历史和回滚
-- [ ] 移动端优化
-- [ ] 插件系统
+- [ ] 图像生成功能
 
 ## 贡献指南
 
@@ -223,12 +222,6 @@ docker run -p 3000:3000 -e OPENAI_API_KEY=your_api_key_here ai-doc-editor
 - 专利使用需获取必要许可
 
 版权所有 © 2023-2024 <a href="https://www.eoait.com" target="_blank">广东星时代网络技术有限公司</a>
-
-## 致谢
-
-- 感谢 [TipTap](https://tiptap.dev/) 团队提供的出色编辑器框架
-- 感谢所有为这个项目做出贡献的开发者
-- 特别感谢我们的用户社区提供的宝贵反馈
 
 ## 联系我们
 
