@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  <strong><a href="README_EN.md">English Documentation</a></strong>
+  <strong><a href="README.md">English Documentation</a></strong>
 </p>
 
 <p align="center">

@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  <strong><a href="README.md">中文文档</a></strong>
+  <strong><a href="README_ZH.md">中文文档</a></strong>
 </p>
 
 <p align="center">
