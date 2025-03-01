@@ -26,6 +26,7 @@ import { SlashCommands } from './utils/SlashCommands';
 import { CustomImage } from './utils/CustomImage';
 import { CustomHighlight } from './utils/CustomHighlight';
 import { FontSize } from './utils/FontSize';
+import { CustomCitation } from './utils/CustomCitation';
 import { InlineLinkEditor } from './InlineLinkEditor';
 import { useState, useCallback, useEffect } from 'react';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -105,7 +106,7 @@ export const Editor = ({
         },
         blockquote: {
           HTMLAttributes: {
-            class: 'border-l-4 border-gray-300 pl-4 my-4',
+            class: 'citation-block',
           },
         },
         bulletList: {
@@ -197,6 +198,7 @@ export const Editor = ({
         lowlight,
       }),
       SlashCommands,
+      CustomCitation,
       AIShortcut,
     ],
     content: loadSavedContent()?.content || content,

@@ -105,6 +105,53 @@
   content: none;
 }
 
+/* 引用和引证样式 */
+.ProseMirror blockquote,
+.citation-block {
+  background-color: rgba(245, 247, 250, 0.8);
+  border-left: 4px solid #3b82f6;
+  padding: 12px 16px;
+  margin: 16px 0;
+  border-radius: 0 4px 4px 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  position: relative;
+  font-style: italic;
+  color: #4b5563;
+  transition: all 0.3s ease;
+}
+
+.ProseMirror blockquote:hover,
+.citation-block:hover {
+  background-color: rgba(239, 246, 255, 0.9);
+  border-left-color: #2563eb;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+}
+
+/* 引用中的段落样式 */
+.ProseMirror blockquote p,
+.citation-block p {
+  margin: 0;
+  padding: 0;
+}
+
+/* 引用中的作者/来源样式 */
+.ProseMirror blockquote p:last-child,
+.citation-block p:last-child {
+  margin-top: 8px;
+  text-align: right;
+  font-size: 0.9em;
+  font-weight: 500;
+  color: #6b7280;
+  font-style: normal;
+}
+
+/* 引用中的作者/来源前缀 */
+.ProseMirror blockquote p:last-child::before,
+.citation-block p:last-child::before {
+  content: "— ";
+  opacity: 0.7;
+}
+
 /* 块级元素的激活状态样式已删除 */
 
 /* 块级句柄的悬停区域样式已删除 */
@@ -257,6 +304,59 @@
 .search-highlight-current {
   background-color: rgba(255, 165, 0, 0.5);
   border-radius: 2px;
+}
+
+/* 表格选择器样式 */
+.table-selector-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  background-color: #f8fafc;
+}
+
+.table-selector-cell {
+  width: 30px;
+  height: 30px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  position: relative;
+  background-color: white;
+}
+
+.table-selector-cell:hover {
+  background-color: #f1f5f9;
+}
+
+/* 提高选中状态的CSS优先级 */
+.table-selector-grid .table-selector-cell.active {
+  background-color: #3b82f6 !important;
+  border-color: #2563eb !important;
+  z-index: 1;
+  box-shadow: 0 0 0 1px #2563eb;
+}
+
+.table-selector-grid .table-selector-cell.active::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none;
+}
+
+.table-selector-info {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 0.875rem;
+  color: #4b5563;
+  font-weight: 500;
 }
 
 /* 代码块样式 */
