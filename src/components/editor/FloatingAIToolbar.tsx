@@ -2,12 +2,89 @@
 
 import { Editor } from '@tiptap/react';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Wand2, Send, X, Check, RotateCcw, Loader2, GripHorizontal, Sparkles } from 'lucide-react';
+import { Wand2, Send, X, Check, RotateCcw, Loader2, GripHorizontal, Sparkles, Type, ChevronDown } from 'lucide-react';
 import * as Popover from '@radix-ui/react-popover';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { debounce } from 'lodash';
+import MarkdownIt from 'markdown-it';
 import './styles/aiToolbar.css';
+
+// Initialize markdown-it instance
+const md = new MarkdownIt({
+  html: false,
+  breaks: true,
+  linkify: true,
+});
+
+// Function to convert HTML to Markdown
+const htmlToMarkdown = (html: string): string => {
+  // Replace HTML tags with Markdown equivalents
+  let markdown = html;
+  
+  // Replace paragraph tags
+  markdown = markdown.replace(/<p>(.*?)<\/p>/g, '$1\n\n');
+  
+  // Replace strong/bold tags
+  markdown = markdown.replace(/<strong>(.*?)<\/strong>/g, '**$1**');
+  markdown = markdown.replace(/<b>(.*?)<\/b>/g, '**$1**');
+  
+  // Replace emphasis/italic tags
+  markdown = markdown.replace(/<em>(.*?)<\/em>/g, '*$1*');
+  markdown = markdown.replace(/<i>(.*?)<\/i>/g, '*$1*');
+  
+  // Replace heading tags
+  markdown = markdown.replace(/<h1>(.*?)<\/h1>/g, '# $1\n');
+  markdown = markdown.replace(/<h2>(.*?)<\/h2>/g, '## $1\n');
+  markdown = markdown.replace(/<h3>(.*?)<\/h3>/g, '### $1\n');
+  markdown = markdown.replace(/<h4>(.*?)<\/h4>/g, '#### $1\n');
+  markdown = markdown.replace(/<h5>(.*?)<\/h5>/g, '##### $1\n');
+  markdown = markdown.replace(/<h6>(.*?)<\/h6>/g, '###### $1\n');
+  
+  // Replace list items
+  markdown = markdown.replace(/<li>(.*?)<\/li>/g, '- $1\n');
+  
+  // Replace unordered lists - using workaround for 's' flag
+  markdown = markdown.replace(/<ul>([^]*?)<\/ul>/g, '$1\n');
+  
+  // Replace ordered lists - using workaround for 's' flag
+  markdown = markdown.replace(/<ol>([^]*?)<\/ol>/g, '$1\n');
+  
+  // Replace blockquotes - using workaround for 's' flag
+  markdown = markdown.replace(/<blockquote>([^]*?)<\/blockquote>/g, '> $1\n');
+  
+  // Replace code blocks - using workaround for 's' flag
+  markdown = markdown.replace(/<pre><code>([^]*?)<\/code><\/pre>/g, '```\n$1\n```\n');
+  
+  // Replace inline code
+  markdown = markdown.replace(/<code>(.*?)<\/code>/g, '`$1`');
+  
+  // Replace links
+  markdown = markdown.replace(/<a href="(.*?)">(.*?)<\/a>/g, '[$2]($1)');
+  
+  // Replace images
+  markdown = markdown.replace(/<img src="(.*?)" alt="(.*?)">/g, '![$2]($1)');
+  
+  // Replace line breaks
+  markdown = markdown.replace(/<br>/g, '\n');
+  
+  // Replace horizontal rules
+  markdown = markdown.replace(/<hr>/g, '---\n');
+  
+  // Clean up extra spaces and line breaks
+  markdown = markdown.replace(/\n\s*\n\s*\n/g, '\n\n');
+  
+  // Remove any remaining HTML tags
+  markdown = markdown.replace(/<[^>]*>/g, '');
+  
+  // Decode HTML entities
+  const textarea = document.createElement('textarea');
+  textarea.innerHTML = markdown;
+  markdown = textarea.value;
+  
+  return markdown;
+};
 
 // 扩展 Editor 类型
 declare module '@tiptap/react' {
@@ -29,6 +106,8 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
   const [isLoading, setIsLoading] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [generatedContent, setGeneratedContent] = useState('');
+  const [mode, setMode] = useState<'process' | 'generate' | 'format'>('process');
+  const [formatType, setFormatType] = useState<string>('');
   const selectionRef = useRef<{ from: number; to: number } | null>(null);
   const pluginKey = new PluginKey('aiHighlight');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -302,6 +381,15 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
     cleanedContent = cleanedContent.replace(/&quot;/g, '"');
     cleanedContent = cleanedContent.replace(/&#39;/g, "'");
 
+    // 检查内容是否包含HTML标签
+    const containsHtml = /<[a-z][\s\S]*>/i.test(cleanedContent);
+    
+    // 如果包含HTML标签，转换为Markdown
+    if (containsHtml) {
+      cleanedContent = htmlToMarkdown(cleanedContent);
+      console.log('转换HTML为Markdown:', cleanedContent);
+    }
+
     console.log('清理后的内容:', cleanedContent);
 
     try {
@@ -311,8 +399,9 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
         editor.chain().focus().deleteRange({ from, to }).run();
       }
       
-      // 使用 Tiptap 的 insertContent 方法，尝试保留格式
+      // 直接插入文本内容，保留Markdown格式
       editor.commands.insertContent(cleanedContent);
+      
     } catch (error) {
       console.error('Error inserting content:', error);
       
@@ -345,6 +434,8 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
     setGeneratedContent('');
     setIsVisible(false);
     setPrompt('');
+    setMode('process');
+    setFormatType('');
     
     // 延迟清除选中范围和高亮，避免递归更新
     setTimeout(() => {
@@ -362,9 +453,25 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
     setGeneratedContent('');
     setIsVisible(false);
     setPrompt('');
+    setMode('process');
+    setFormatType('');
     selectionRef.current = null;
     editor.view.dispatch(editor.state.tr);
   };
+
+  // 格式化选项
+  const formatOptions = [
+    { label: '标题 1', value: 'h1', icon: 'H1' },
+    { label: '标题 2', value: 'h2', icon: 'H2' },
+    { label: '标题 3', value: 'h3', icon: 'H3' },
+    { label: '加粗', value: 'bold', icon: 'B' },
+    { label: '斜体', value: 'italic', icon: 'I' },
+    { label: '引用', value: 'blockquote', icon: '>' },
+    { label: '无序列表', value: 'list', icon: '•' },
+    { label: '有序列表', value: 'numbered-list', icon: '1.' },
+    { label: '代码', value: 'code', icon: '</>' },
+    { label: '表格', value: 'table', icon: '⊞' },
+  ];
 
   const handleSubmit = async () => {
     let text = '';
@@ -390,7 +497,17 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
       };
     }
 
-    if (!prompt.trim()) {
+    if (mode === 'format') {
+      if (!formatType) {
+        alert('请选择格式化类型');
+        return;
+      }
+      
+      if (!text) {
+        alert('请先选择要格式化的文本');
+        return;
+      }
+    } else if (!prompt.trim()) {
       alert('请输入提示词');
       return;
     }
@@ -400,6 +517,12 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
     setGeneratedContent(''); // 清空之前的内容
 
     try {
+      // 添加明确的指示，要求使用Markdown格式
+      let actualPrompt = mode === 'format' ? formatType : prompt.trim();
+      if (mode !== 'format') {
+        actualPrompt += " (请使用Markdown格式输出，不要使用HTML标签)";
+      }
+      
       const response = await fetch('/api/ai/agent', {
         method: 'POST',
         headers: {
@@ -407,8 +530,8 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
         },
         body: JSON.stringify({ 
           text,
-          prompt: prompt.trim(),
-          mode: isGenerating ? 'generate' : 'process' // 添加模式标记
+          prompt: actualPrompt,
+          mode: mode === 'format' ? 'format' : (isGenerating ? 'generate' : 'process') // 添加模式标记
         }),
       });
 
@@ -452,6 +575,19 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
     } finally {
       setIsLoading(false);
       onLoadingChange(false);
+    }
+  };
+
+  // 处理格式化选择
+  const handleFormatSelect = (format: string) => {
+    setFormatType(format);
+    setMode('format');
+    
+    // 如果有选中内容，直接提交
+    if (selectionRef.current && selectionRef.current.from !== selectionRef.current.to) {
+      setTimeout(() => {
+        handleSubmit();
+      }, 100);
     }
   };
 
@@ -538,7 +674,7 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
                   : "写一段/续写..."
                 }
                 className="magic-input flex-1 pl-10 pr-3 py-3 text-sm rounded-xl w-full focus:outline-none placeholder:text-gray-300"
-                disabled={isLoading}
+                disabled={isLoading || mode === 'format'}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -547,6 +683,43 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
                 }}
               />
             </div>
+            
+            {/* 格式化下拉菜单 */}
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger asChild>
+                <button
+                  className="format-btn p-3 text-gray-600 hover:text-gray-800 transition-all duration-300 rounded-xl border border-gray-200/50 bg-white/50 hover:bg-white/80"
+                  aria-label="格式化选项"
+                >
+                  <Type className="w-4 h-4" />
+                </button>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Content
+                  className="ai-toolbar-glass rounded-lg shadow-lg p-2 w-48 z-50"
+                  sideOffset={5}
+                  align="end"
+                >
+                  <DropdownMenu.Label className="px-2 py-1.5 text-xs font-medium text-gray-500">
+                    Markdown 格式化
+                  </DropdownMenu.Label>
+                  <DropdownMenu.Separator className="h-px bg-gray-100 my-1" />
+                  {formatOptions.map((option) => (
+                    <DropdownMenu.Item
+                      key={option.value}
+                      className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100/50 rounded cursor-pointer"
+                      onClick={() => handleFormatSelect(option.value)}
+                    >
+                      <span className="w-6 h-6 flex items-center justify-center text-xs font-medium bg-gray-100 rounded">
+                        {option.icon}
+                      </span>
+                      {option.label}
+                    </DropdownMenu.Item>
+                  ))}
+                </DropdownMenu.Content>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Root>
+            
             <button
               onClick={handleSubmit}
               disabled={isLoading}
@@ -567,10 +740,13 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
 
           <div className="mt-2 flex items-center justify-between text-[11px]">
             <div className="text-gray-500 flex items-center gap-1.5">
-              {selectionRef.current && selectionRef.current.from !== selectionRef.current.to
-                ? "处理选中的文本"
-                : "在此处生成内容"
-              }
+              {mode === 'format' ? (
+                <>格式化为: <span className="font-medium">{formatOptions.find(o => o.value === formatType)?.label || formatType}</span></>
+              ) : selectionRef.current && selectionRef.current.from !== selectionRef.current.to ? (
+                "处理选中的文本"
+              ) : (
+                "在此处生成内容"
+              )}
             </div>
             <div className="flex items-center gap-1 text-gray-500">
               <kbd className="px-1.5 py-0.5 text-[10px] font-medium bg-gray-50/70 rounded border border-gray-200/70">Alt</kbd>
@@ -583,10 +759,12 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
         {generatedContent && (
           <>
             <div className="ai-generated-content flex-1 max-h-[400px] px-4 py-3 overflow-y-auto">
-              <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
-                {generatedContent}
-                {isLoading && <span className="typing-effect">&nbsp;</span>}
-              </div>
+              <div 
+                className="text-sm text-gray-700 leading-relaxed markdown-content"
+                dangerouslySetInnerHTML={{ 
+                  __html: md.render(generatedContent) + (isLoading ? '<span class="typing-effect">&nbsp;</span>' : '') 
+                }}
+              />
             </div>
             <div className="flex justify-end gap-2 p-3 border-t border-gray-100/30">
               <button

@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useState, useRef, useEffect } from 'react';
 import { Editor } from '@tiptap/react';
 import * as Toolbar from '@radix-ui/react-toolbar';
 import {
@@ -34,14 +35,20 @@ import {
   Heading3,
   Wand2,
   FileText,
+  BookOpen,
+  BookmarkIcon,
+  Download,
+  Minus,
+  Plus
 } from 'lucide-react';
 import { Heading4, Heading5, Heading6 } from './icons/HeadingIcons';
 import * as Popover from '@radix-ui/react-popover';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { useRef, useState } from 'react';
 import { FontSizeSelector } from './FontSizeSelector';
 import { Toast } from './Toast';
 import { FindReplace } from './FindReplace';
+import { HexColorPicker } from 'react-colorful';
+import { Level } from '@tiptap/extension-heading';
 
 type Level = 1 | 2 | 3 | 4 | 5 | 6;
 
@@ -58,32 +65,58 @@ const TableSelector = ({ onSelect }: { onSelect: (rows: number, cols: number) =>
   const [rows, setRows] = useState(0);
   const [cols, setCols] = useState(0);
   const [isSelecting, setIsSelecting] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startRow, setStartRow] = useState(0);
+  const [startCol, setStartCol] = useState(0);
 
+  // 处理鼠标进入单元格事件
   const handleMouseEnter = (row: number, col: number) => {
-    setRows(row);
-    setCols(col);
+    if (isDragging) {
+      // 在拖动状态下，更新选择区域
+      setRows(Math.max(row, startRow));
+      setCols(Math.max(col, startCol));
+    } else if (!isSelecting) {
+      // 非选择状态下，仅预览当前单元格
+      setRows(row);
+      setCols(col);
+    }
   };
 
+  // 处理鼠标按下事件
   const handleMouseDown = (row: number, col: number) => {
     setIsSelecting(true);
+    setIsDragging(true);
+    // 记录起始位置
+    setStartRow(row);
+    setStartCol(col);
     setRows(row);
     setCols(col);
+    
+    // 添加全局鼠标事件监听，以便在拖动超出组件范围时也能捕获鼠标释放
+    document.addEventListener('mouseup', handleGlobalMouseUp, { once: true });
   };
-
-  const handleMouseUp = () => {
-    if (isSelecting) {
-      setIsSelecting(false);
+  
+  // 处理全局鼠标释放事件
+  const handleGlobalMouseUp = () => {
+    setIsDragging(false);
+    if (isSelecting && rows >= 0 && cols >= 0) {
       onSelect(rows + 1, cols + 1);
+      setTimeout(() => {
+        setIsSelecting(false);
+        // 重置选择状态
+        setRows(0);
+        setCols(0);
+      }, 300);
     }
   };
 
   return (
-    <div className="p-2">
+    <div className="p-4">
       <div className="mb-2">
         <div 
-          className="grid grid-cols-8 gap-1"
+          className="table-selector-grid"
           onMouseLeave={() => {
-            if (!isSelecting) {
+            if (!isDragging) {
               setRows(0);
               setCols(0);
             }
@@ -92,22 +125,33 @@ const TableSelector = ({ onSelect }: { onSelect: (rows: number, cols: number) =>
           {Array.from({ length: 8 * 8 }).map((_, i) => {
             const row = Math.floor(i / 8);
             const col = i % 8;
-            const isActive = row <= rows && col <= cols;
+            
+            // 计算是否为活动单元格
+            const minRow = Math.min(startRow, rows);
+            const maxRow = Math.max(startRow, rows);
+            const minCol = Math.min(startCol, cols);
+            const maxCol = Math.max(startCol, cols);
+            
+            const isActive = isDragging 
+              ? (row >= minRow && row <= maxRow && col >= minCol && col <= maxCol)
+              : (row <= rows && col <= cols);
+              
             return (
               <div
                 key={i}
-                className={`w-4 h-4 border transition-colors ${
-                  isActive ? 'bg-blue-500 border-blue-600' : 'border-gray-200'
-                }`}
+                className={`table-selector-cell ${isActive ? 'active' : ''}`}
                 onMouseEnter={() => handleMouseEnter(row, col)}
                 onMouseDown={() => handleMouseDown(row, col)}
-                onMouseUp={handleMouseUp}
+                style={{
+                  backgroundColor: isActive ? '#3b82f6' : 'white',
+                  borderColor: isActive ? '#2563eb' : '#e2e8f0'
+                }}
               />
             );
           })}
         </div>
       </div>
-      <div className="text-sm text-gray-500 text-center">
+      <div className="table-selector-info">
         {rows > 0 || cols > 0 ? `${rows + 1} × ${cols + 1} 表格` : '拖动选择表格大小'}
       </div>
     </div>
@@ -466,6 +510,82 @@ export const EditorToolbar = ({ editor, onLinkClick, onSave, onTocClick, showToc
           >
             <Quote className="w-4 h-4" />
           </ToolbarButton>
+
+          <Popover.Root>
+            <Popover.Trigger asChild>
+              <button 
+                className={`toolbar-button flex items-center justify-center w-8 h-8 rounded hover:bg-gray-100 ${editor.isActive('blockquote') ? 'bg-blue-100 text-blue-600' : ''}`}
+                title="引用文献"
+              >
+                <BookmarkIcon className="w-4 h-4" />
+              </button>
+            </Popover.Trigger>
+            <Popover.Content 
+              className="bg-white rounded-lg shadow-lg p-4 w-80 border border-gray-200 z-[100]"
+              sideOffset={5}
+            >
+              <div className="flex flex-col gap-3">
+                <h3 className="text-sm font-medium">添加引用文献</h3>
+                <div className="flex flex-col gap-2">
+                  <input 
+                    type="text" 
+                    placeholder="作者 (可选)" 
+                    className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                    id="citation-author"
+                  />
+                  <input 
+                    type="text" 
+                    placeholder="来源 (必填)" 
+                    className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                    id="citation-source"
+                  />
+                  <textarea 
+                    placeholder="引用内容" 
+                    className="w-full px-3 py-2 border border-gray-300 rounded text-sm min-h-[80px]"
+                    id="citation-content"
+                  />
+                </div>
+                <div className="flex justify-end gap-2 mt-2">
+                  <Popover.Close asChild>
+                    <button className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded">
+                      取消
+                    </button>
+                  </Popover.Close>
+                  <Popover.Close asChild>
+                    <button 
+                      className="px-3 py-1.5 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded"
+                      onClick={() => {
+                        const authorEl = document.getElementById('citation-author') as HTMLInputElement;
+                        const sourceEl = document.getElementById('citation-source') as HTMLInputElement;
+                        const contentEl = document.getElementById('citation-content') as HTMLTextAreaElement;
+                        
+                        const author = authorEl?.value || '';
+                        const source = sourceEl?.value || '';
+                        const content = contentEl?.value || '';
+                        
+                        if (source) {
+                          // First insert the content if provided
+                          if (content) {
+                            editor.chain().focus().insertContent(content).run();
+                          }
+                          
+                          // Then create the citation with source info
+                          editor.commands.setCitation({ source, author });
+                          
+                          // Clear the inputs
+                          if (authorEl) authorEl.value = '';
+                          if (sourceEl) sourceEl.value = '';
+                          if (contentEl) contentEl.value = '';
+                        }
+                      }}
+                    >
+                      插入引用
+                    </button>
+                  </Popover.Close>
+                </div>
+              </div>
+            </Popover.Content>
+          </Popover.Root>
         </ToolbarGroup>
 
         <ToolbarGroup>
