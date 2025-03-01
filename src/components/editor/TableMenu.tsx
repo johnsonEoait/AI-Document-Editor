@@ -1,5 +1,5 @@
 import { Editor } from '@tiptap/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   ArrowDown,
   ArrowUp,
@@ -8,6 +8,12 @@ import {
   Trash2,
   RowsIcon,
   ColumnsIcon,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  Type,
+  Grid2x2,
+  Pencil,
 } from 'lucide-react';
 
 interface TableMenuProps {
@@ -21,6 +27,7 @@ interface ContextMenuPosition {
 
 export const TableMenu = ({ editor }: TableMenuProps) => {
   const [contextMenu, setContextMenu] = useState<ContextMenuPosition | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleContextMenu = (e: MouseEvent) => {
@@ -29,6 +36,12 @@ export const TableMenu = ({ editor }: TableMenuProps) => {
       
       if (cell && editor.isActive('table')) {
         e.preventDefault();
+        // Clear previous selections
+        editor.view.dom.querySelectorAll('td.is-selected, th.is-selected').forEach(el => {
+          el.classList.remove('is-selected');
+        });
+        // Add selected class to current cell
+        cell.classList.add('is-selected');
         setContextMenu({ x: e.clientX, y: e.clientY });
       } else {
         setContextMenu(null);
@@ -37,20 +50,68 @@ export const TableMenu = ({ editor }: TableMenuProps) => {
 
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
+      const cell = target.closest('td, th');
       const isMenuClick = target.closest('.table-context-menu');
-      if (!isMenuClick) {
+      
+      if (cell && !isMenuClick && editor.isActive('table')) {
+        // Clear previous selections
+        editor.view.dom.querySelectorAll('td.is-selected, th.is-selected').forEach(el => {
+          el.classList.remove('is-selected');
+        });
+        // Add selected class to clicked cell
+        cell.classList.add('is-selected');
+        editor.commands.focus();
+      } else if (!isMenuClick) {
+        setContextMenu(null);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && contextMenu) {
         setContextMenu(null);
       }
     };
 
     editor.view.dom.addEventListener('contextmenu', handleContextMenu);
-    document.addEventListener('click', handleClick);
+    editor.view.dom.addEventListener('click', handleClick);
+    document.addEventListener('keydown', handleKeyDown);
 
     return () => {
       editor.view.dom.removeEventListener('contextmenu', handleContextMenu);
-      document.removeEventListener('click', handleClick);
+      editor.view.dom.removeEventListener('click', handleClick);
+      document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [editor]);
+  }, [editor, contextMenu]);
+
+  // 调整菜单位置以确保在屏幕内
+  useEffect(() => {
+    if (contextMenu && menuRef.current) {
+      const menu = menuRef.current;
+      const rect = menu.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      
+      let { x, y } = contextMenu;
+      
+      // 检查是否超出右边界
+      if (x + rect.width > viewportWidth) {
+        x = x - rect.width;
+      }
+      
+      // 检查是否超出下边界
+      if (y + rect.height > viewportHeight) {
+        y = y - rect.height;
+      }
+      
+      // 确保不会超出顶部或左侧
+      x = Math.max(8, x);
+      y = Math.max(8, y);
+      
+      if (x !== contextMenu.x || y !== contextMenu.y) {
+        setContextMenu({ x, y });
+      }
+    }
+  }, [contextMenu]);
 
   const handleAddRow = (position: 'before' | 'after') => {
     if (position === 'before') {
@@ -85,103 +146,109 @@ export const TableMenu = ({ editor }: TableMenuProps) => {
     setContextMenu(null);
   };
 
+  const handleAlign = (align: 'left' | 'center' | 'right') => {
+    editor.chain().focus().setCellAttribute('textAlign', align).run();
+    setContextMenu(null);
+  };
+
   if (!contextMenu) return null;
 
   return (
     <div
-      className="fixed z-[100] bg-white rounded-lg shadow-lg border border-gray-200 min-w-[180px] p-1 table-context-menu"
+      ref={menuRef}
+      className="fixed z-[100] table-context-menu"
       style={{
         left: contextMenu.x,
         top: contextMenu.y,
       }}
     >
       <div className="flex flex-col">
+        <div className="table-context-menu-title">
+          <Grid2x2 className="w-3 h-3 inline-block mr-1.5 opacity-60" /> 表格
+        </div>
+        
         {/* 插入行 */}
-        <div className="flex flex-col">
-          <div className="px-3 py-1.5 text-sm text-gray-500 font-medium">插入行</div>
-          <div
-            role="menuitem"
-            tabIndex={0}
-            className="w-full px-3 py-1.5 text-sm text-left hover:bg-gray-100 rounded cursor-pointer flex items-center gap-2"
-            onClick={() => handleAddRow('before')}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                handleAddRow('before');
-              }
-            }}
-          >
-            <ArrowUp className="w-4 h-4" />
-            <span>在上方插入</span>
-          </div>
-          <div
-            role="menuitem"
-            tabIndex={0}
-            className="w-full px-3 py-1.5 text-sm text-left hover:bg-gray-100 rounded cursor-pointer flex items-center gap-2"
-            onClick={() => handleAddRow('after')}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                handleAddRow('after');
-              }
-            }}
-          >
-            <ArrowDown className="w-4 h-4" />
-            <span>在下方插入</span>
-          </div>
+        <div className="table-context-menu-item"
+          role="menuitem"
+          tabIndex={0}
+          onClick={() => handleAddRow('before')}
+        >
+          <ArrowUp className="w-4 h-4" />
+          <span>在上方插入行</span>
         </div>
-
-        <div className="h-px bg-gray-200 my-1" />
-
-        {/* 插入列 */}
-        <div className="flex flex-col">
-          <div className="px-3 py-1.5 text-sm text-gray-500 font-medium">插入列</div>
-          <div
-            role="menuitem"
-            tabIndex={0}
-            className="w-full px-3 py-1.5 text-sm text-left hover:bg-gray-100 rounded cursor-pointer flex items-center gap-2"
-            onClick={() => handleAddColumn('before')}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                handleAddColumn('before');
-              }
-            }}
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>在左侧插入</span>
-          </div>
-          <div
-            role="menuitem"
-            tabIndex={0}
-            className="w-full px-3 py-1.5 text-sm text-left hover:bg-gray-100 rounded cursor-pointer flex items-center gap-2"
-            onClick={() => handleAddColumn('after')}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                handleAddColumn('after');
-              }
-            }}
-          >
-            <ArrowRight className="w-4 h-4" />
-            <span>在右侧插入</span>
-          </div>
-        </div>
-
-        <div className="h-px bg-gray-200 my-1" />
-
-        {/* 删除行/列 */}
         <div
           role="menuitem"
           tabIndex={0}
-          className="px-3 py-1.5 text-sm text-left hover:bg-gray-100 rounded text-red-500 cursor-pointer flex items-center gap-2"
+          className="table-context-menu-item"
+          onClick={() => handleAddRow('after')}
+        >
+          <ArrowDown className="w-4 h-4" />
+          <span>在下方插入行</span>
+        </div>
+
+        <div className="table-context-menu-divider" />
+
+        {/* 插入列 */}
+        <div
+          role="menuitem"
+          tabIndex={0}
+          className="table-context-menu-item"
+          onClick={() => handleAddColumn('before')}
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>在左侧插入列</span>
+        </div>
+        <div
+          role="menuitem"
+          tabIndex={0}
+          className="table-context-menu-item"
+          onClick={() => handleAddColumn('after')}
+        >
+          <ArrowRight className="w-4 h-4" />
+          <span>在右侧插入列</span>
+        </div>
+
+        <div className="table-context-menu-divider" />
+
+        {/* 文本对齐 */}
+        <div className="table-context-menu-title">文本格式</div>
+        <div
+          role="menuitem"
+          tabIndex={0}
+          className="table-context-menu-item"
+          onClick={() => handleAlign('left')}
+        >
+          <AlignLeft className="w-4 h-4" />
+          <span>左对齐</span>
+        </div>
+        <div
+          role="menuitem"
+          tabIndex={0}
+          className="table-context-menu-item"
+          onClick={() => handleAlign('center')}
+        >
+          <AlignCenter className="w-4 h-4" />
+          <span>居中对齐</span>
+        </div>
+        <div
+          role="menuitem"
+          tabIndex={0}
+          className="table-context-menu-item"
+          onClick={() => handleAlign('right')}
+        >
+          <AlignRight className="w-4 h-4" />
+          <span>右对齐</span>
+        </div>
+
+        <div className="table-context-menu-divider" />
+
+        {/* 删除行/列 */}
+        <div className="table-context-menu-title">删除</div>
+        <div
+          role="menuitem"
+          tabIndex={0}
+          className="table-context-menu-item text-red-500"
           onClick={handleDeleteRow}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              handleDeleteRow();
-            }
-          }}
         >
           <RowsIcon className="w-4 h-4" />
           <span>删除行</span>
@@ -189,33 +256,17 @@ export const TableMenu = ({ editor }: TableMenuProps) => {
         <div
           role="menuitem"
           tabIndex={0}
-          className="px-3 py-1.5 text-sm text-left hover:bg-gray-100 rounded text-red-500 cursor-pointer flex items-center gap-2"
+          className="table-context-menu-item text-red-500"
           onClick={handleDeleteColumn}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              handleDeleteColumn();
-            }
-          }}
         >
           <ColumnsIcon className="w-4 h-4" />
           <span>删除列</span>
         </div>
-
-        <div className="h-px bg-gray-200 my-1" />
-
-        {/* 删除表格 */}
         <div
           role="menuitem"
           tabIndex={0}
-          className="px-3 py-1.5 text-sm text-left hover:bg-gray-100 rounded text-red-500 cursor-pointer flex items-center gap-2"
+          className="table-context-menu-item text-red-500"
           onClick={handleDeleteTable}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              handleDeleteTable();
-            }
-          }}
         >
           <Trash2 className="w-4 h-4" />
           <span>删除表格</span>

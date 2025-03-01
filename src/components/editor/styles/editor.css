@@ -156,69 +156,180 @@
 
 /* 块级句柄的悬停区域样式已删除 */
 
-/* Markdown 表格样式 */
+/* Markdown 表格样式 - 完全重构版 */
+.ProseMirror .tableWrapper {
+  padding: 0.5rem 0;
+  overflow-x: auto;
+  position: relative;
+}
+
 .ProseMirror table {
   border-collapse: collapse;
-  margin: 1em 0;
+  table-layout: fixed;
   width: 100%;
-  font-family: monospace;
-  font-size: 1em;
-  line-height: 1.5;
-  transition: background-color 0.2s ease;
-  position: relative;
-  min-height: 1.5em;
+  overflow: hidden;
+  margin: 0;
+  background: white;
+  border: 1px solid rgb(233, 233, 231);
 }
 
-.ProseMirror th,
-.ProseMirror td {
-  border: 1px solid #ddd;
-  padding: 8px 13px;
-  text-align: left;
-  transition: background-color 0.2s ease;
-}
-
+/* 表格单元格基础样式 */
+.ProseMirror td,
 .ProseMirror th {
-  font-weight: 600;
-  background-color: #edf2f7;
-  color: #1a202c;
-}
-
-.ProseMirror tr {
-  transition: background-color 0.2s ease;
-}
-
-.ProseMirror tr:nth-child(2n) {
-  background-color: #f8fafc;
-}
-
-.ProseMirror tr:hover {
-  background-color: #f3f4f6;
-}
-
-/* 确保句柄在编辑器内部正确定位 */
-.ProseMirror {
+  min-width: 1em;
+  border: 1px solid rgb(233, 233, 231);
+  padding: 6px 8px;
+  vertical-align: top;
+  box-sizing: border-box;
   position: relative;
+  transition: all 20ms ease-in-out;
+  cursor: pointer;
+  outline: none !important;
+  -webkit-user-select: none;
+  user-select: none;
+  background-color: transparent;
 }
 
-/* 添加动画效果 */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateX(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+/* 表格单元格内容可选择 */
+.ProseMirror td *,
+.ProseMirror th * {
+  -webkit-user-select: text;
+  user-select: text;
+  cursor: text;
+  position: relative;
+  z-index: 1;
 }
 
-/* 块级句柄动画样式已删除 */
+/* 选中的单元格样式 - 优化版本 */
+.ProseMirror td.selectedCell,
+.ProseMirror th.selectedCell,
+.ProseMirror td.node-selected,
+.ProseMirror th.node-selected,
+.ProseMirror td.has-cursor,
+.ProseMirror th.has-cursor,
+.ProseMirror td.selected,
+.ProseMirror th.selected,
+.ProseMirror td.ProseMirror-selectednode,
+.ProseMirror th.ProseMirror-selectednode,
+.ProseMirror td[data-selected],
+.ProseMirror th[data-selected],
+.ProseMirror td.is-selected,
+.ProseMirror th.is-selected {
+  background-color: rgba(35, 131, 226, 0.06) !important;
+  box-shadow: 0 0 0 1.5px rgb(35, 131, 226) inset !important;
+  border-color: transparent !important;
+  z-index: 2;
+}
 
+/* 单击时的即时反馈 */
+.ProseMirror td:active,
+.ProseMirror th:active {
+  background-color: rgba(35, 131, 226, 0.08) !important;
+  box-shadow: 0 0 0 1.5px rgb(35, 131, 226) inset !important;
+  border-color: transparent !important;
+  transform: scale(0.995);
+  transition: transform 50ms ease-in-out;
+}
+
+/* 确保单元格点击时立即高亮并保持 */
+.ProseMirror td.is-selected,
+.ProseMirror th.is-selected,
+.ProseMirror td:focus,
+.ProseMirror th:focus,
+.ProseMirror td:focus-within,
+.ProseMirror th:focus-within {
+  background-color: rgba(35, 131, 226, 0.06) !important;
+  box-shadow: 0 0 0 1.5px rgb(35, 131, 226) inset !important;
+  border-color: transparent !important;
+  z-index: 2;
+  outline: none !important;
+}
+
+/* 表格单元格悬停效果 */
+.ProseMirror td:hover:not(.selectedCell):not(.node-selected):not(.has-cursor):not(.selected):not(.ProseMirror-selectednode):not(.is-selected),
+.ProseMirror th:hover:not(.selectedCell):not(.node-selected):not(.has-cursor):not(.selected):not(.ProseMirror-selectednode):not(.is-selected) {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+/* 表格的列调整手柄 */
+.ProseMirror .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: rgb(35, 131, 226);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.ProseMirror .resize-cursor {
+  cursor: col-resize;
+}
+
+.ProseMirror.resize-cursor * {
+  cursor: col-resize !important;
+}
+
+.ProseMirror .selectedCell .column-resize-handle {
+  opacity: 1;
+}
+
+/* 选中表格的状态 */
+.ProseMirror .tableWrapper.selectedTable {
+  box-shadow: 0 0 0 1.5px rgba(35, 131, 226, 0.4);
+  border-radius: 3px;
+}
+
+/* 表格工具栏触发区域 */
+.ProseMirror .tableWrapper::before {
+  content: '';
+  position: absolute;
+  left: -20px;
+  top: 2px;
+  bottom: 2px;
+  width: 16px;
+  border-radius: 3px;
+  background-color: transparent;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease, background-color 120ms ease;
+}
+
+.ProseMirror .tableWrapper:hover::before {
+  opacity: 1;
+  background-color: rgb(233, 233, 231);
+}
+
+/* 表格工具栏的位置 */
 .table-context-menu {
   user-select: none;
+  background-color: white;
+  border-radius: 4px;
+  box-shadow: rgba(15, 15, 15, 0.05) 0px 0px 0px 1px, 
+              rgba(15, 15, 15, 0.1) 0px 3px 6px, 
+              rgba(15, 15, 15, 0.2) 0px 9px 24px;
+  padding: 6px 0;
+  min-width: 200px;
+  z-index: 100;
+  transform-origin: top right;
+  animation: notionMenuFadeIn 120ms cubic-bezier(0.18, 0.89, 0.32, 1.28);
   max-height: calc(100vh - 32px);
   overflow-y: auto;
   scrollbar-width: thin;
+}
+
+/* 更Notion风格的菜单动画 */
+@keyframes notionMenuFadeIn {
+  from {
+    transform: scale(0.98);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .table-context-menu::-webkit-scrollbar {
@@ -230,80 +341,107 @@
 }
 
 .table-context-menu::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: rgba(55, 53, 47, 0.2);
   border-radius: 3px;
 }
 
 .table-context-menu::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(0, 0, 0, 0.3);
+  background-color: rgba(55, 53, 47, 0.3);
 }
 
-/* 动画延迟类 */
-.animation-delay-150 {
-  animation-delay: 150ms;
+/* 表格工具栏的标题样式 */
+.table-context-menu-title {
+  padding: 4px 14px;
+  font-size: 12px;
+  color: rgba(55, 53, 47, 0.6);
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-top: 6px;
 }
 
-.animation-delay-2000 {
-  animation-delay: 2s;
+/* 表格工具栏的项目样式 */
+.table-context-menu-item {
+  padding: 6px 14px;
+  margin: 0 4px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: rgb(55, 53, 47);
+  cursor: pointer;
+  transition: background-color 50ms ease-in-out;
+  height: 28px;
 }
 
-/* 优化渐变动画 */
-@keyframes gradient-xy {
-  0%, 100% {
-    background-size: 400% 400%;
-    background-position: 0% 0%;
-    opacity: 0.9;
+.table-context-menu-item:hover {
+  background-color: rgba(55, 53, 47, 0.08);
+}
+
+/* 表格工具栏的图标 */
+.table-context-menu-item svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: rgba(55, 53, 47, 0.5);
+}
+
+/* 表格工具栏的分隔线 */
+.table-context-menu-divider {
+  height: 1px;
+  margin: 6px 14px;
+  background-color: rgba(55, 53, 47, 0.1);
+}
+
+/* 右侧快捷键提示 */
+.table-context-menu-shortcut {
+  margin-left: auto;
+  color: rgba(55, 53, 47, 0.5);
+  font-size: 12px;
+}
+
+/* 表格选择器的小动画 */
+@keyframes scaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
   }
-  25% {
-    background-size: 400% 400%;
-    background-position: 100% 0%;
-    opacity: 0.8;
-  }
-  50% {
-    background-size: 400% 400%;
-    background-position: 100% 100%;
-    opacity: 0.9;
-  }
-  75% {
-    background-size: 400% 400%;
-    background-position: 0% 100%;
-    opacity: 0.8;
+  to {
+    transform: scale(1);
+    opacity: 1;
   }
 }
 
-/* 优化浮动动画 */
-@keyframes blob {
-  0%, 100% {
-    transform: translate(0px, 0px) scale(1);
-    opacity: 0.7;
-  }
-  33% {
-    transform: translate(30px, -50px) scale(1.1);
-    opacity: 0.9;
-  }
-  66% {
-    transform: translate(-20px, 20px) scale(0.9);
-    opacity: 0.8;
-  }
+/* 修复表格嵌套内容的对齐问题 */
+.ProseMirror td p,
+.ProseMirror th p {
+  margin: 0;
+  padding: 0;
 }
 
-.animate-gradient-xy {
-  animation: gradient-xy 20s ease infinite;
+/* 修复表格内列表样式 */
+.ProseMirror td ul,
+.ProseMirror td ol,
+.ProseMirror th ul,
+.ProseMirror th ol {
+  margin: 0;
+  padding-left: 20px;
 }
 
-.animate-blob {
-  animation: blob 10s ease-in-out infinite;
+/* 表格单元格初始内容的提示 */
+.ProseMirror td.is-empty:first-child::before {
+  content: 'Type something...';
+  color: rgba(55, 53, 47, 0.3);
+  pointer-events: none;
+  height: 0;
+  display: inline-block;
+  font-style: italic;
 }
 
-/* 查找高亮样式 */
-.search-highlight {
-  background-color: rgba(255, 255, 0, 0.3);
-  border-radius: 2px;
-}
-
-.search-highlight-current {
-  background-color: rgba(255, 165, 0, 0.5);
-  border-radius: 2px;
+/* 当单元格被选中时的空提示 */
+.ProseMirror td.is-empty.selectedCell:first-child::before {
+  color: rgba(35, 131, 226, 0.4);
 }
 
 /* 表格选择器样式 */
@@ -376,4 +514,164 @@
   background-color: rgba(0, 0, 0, 0.05);
   padding: 0.2em 0.4em;
   border-radius: 0.25em;
+}
+
+/* 支持Firefox的表格悬停状态 */
+@-moz-document url-prefix() {
+  .ProseMirror td.selectedCell,
+  .ProseMirror th.selectedCell,
+  .ProseMirror td.node-selected,
+  .ProseMirror th.node-selected,
+  .ProseMirror td.has-cursor,
+  .ProseMirror th.has-cursor,
+  .ProseMirror td.selected,
+  .ProseMirror th.selected,
+  .ProseMirror td.ProseMirror-selectednode,
+  .ProseMirror th.ProseMirror-selectednode {
+    background-color: rgba(35, 131, 226, 0.06) !important;
+    box-shadow: 0 0 0 1.5px rgb(35, 131, 226) inset !important;
+  }
+  
+  .ProseMirror td ::selection,
+  .ProseMirror th ::selection {
+    background-color: transparent !important;
+  }
+}
+
+/* 美化多选单元格之间的连接 */
+.ProseMirror .selectedCell:not(:first-child):not(:last-child) {
+  position: relative;
+}
+
+/* 表格工具栏悬停条 */
+.ProseMirror .tableWrapper:hover {
+  outline: 1px solid rgba(55, 53, 47, 0.1);
+  border-radius: 3px;
+}
+
+/* 添加动画效果 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 动画延迟类 */
+.animation-delay-150 {
+  animation-delay: 150ms;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+/* 优化渐变动画 */
+@keyframes gradient-xy {
+  0%, 100% {
+    background-size: 400% 400%;
+    background-position: 0% 0%;
+    opacity: 0.9;
+  }
+  25% {
+    background-size: 400% 400%;
+    background-position: 100% 0%;
+    opacity: 0.8;
+  }
+  50% {
+    background-size: 400% 400%;
+    background-position: 100% 100%;
+    opacity: 0.9;
+  }
+  75% {
+    background-size: 400% 400%;
+    background-position: 0% 100%;
+    opacity: 0.8;
+  }
+}
+
+/* 优化浮动动画 */
+@keyframes blob {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+    opacity: 0.7;
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+    opacity: 0.9;
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+    opacity: 0.8;
+  }
+}
+
+.animate-gradient-xy {
+  animation: gradient-xy 20s ease infinite;
+}
+
+.animate-blob {
+  animation: blob 10s ease-in-out infinite;
+}
+
+/* 查找高亮样式 */
+.search-highlight {
+  background-color: rgba(255, 255, 0, 0.3);
+  border-radius: 2px;
+}
+
+.search-highlight-current {
+  background-color: rgba(255, 165, 0, 0.5);
+  border-radius: 2px;
+}
+
+/* 表格头部样式 */
+.ProseMirror th {
+  font-weight: 500;
+  text-align: left;
+  background-color: rgba(247, 246, 243, 0.7);
+}
+
+/* 表格行交替背景色 */
+.ProseMirror tr:nth-child(even) td {
+  background-color: rgba(251, 250, 249, 0.5);
+}
+
+/* 选中状态下清除交替背景色 */
+.ProseMirror tr:nth-child(even) td.is-selected,
+.ProseMirror tr:nth-child(even) td.selectedCell,
+.ProseMirror tr:nth-child(even) td.node-selected,
+.ProseMirror tr:nth-child(even) td.has-cursor,
+.ProseMirror tr:nth-child(even) td.selected,
+.ProseMirror tr:nth-child(even) td.ProseMirror-selectednode {
+  background-color: rgba(35, 131, 226, 0.06) !important;
+}
+
+/* 选中文本时的样式 */
+.ProseMirror td ::selection,
+.ProseMirror th ::selection {
+  background-color: rgba(35, 131, 226, 0.2);
+}
+
+/* Firefox 特定样式 */
+@-moz-document url-prefix() {
+  .ProseMirror td.is-selected,
+  .ProseMirror th.is-selected,
+  .ProseMirror td.selectedCell,
+  .ProseMirror th.selectedCell,
+  .ProseMirror td.node-selected,
+  .ProseMirror th.node-selected,
+  .ProseMirror td.has-cursor,
+  .ProseMirror th.has-cursor,
+  .ProseMirror td.selected,
+  .ProseMirror th.selected,
+  .ProseMirror td.ProseMirror-selectednode,
+  .ProseMirror th.ProseMirror-selectednode {
+    background-color: rgba(35, 131, 226, 0.06) !important;
+    box-shadow: 0 0 0 1.5px rgb(35, 131, 226) inset !important;
+  }
 } 

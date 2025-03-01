@@ -14,7 +14,7 @@ import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
 import Underline from '@tiptap/extension-underline';
 import { common, createLowlight } from 'lowlight';
-import { TextSelection } from 'prosemirror-state';
+import { TextSelection, Plugin } from 'prosemirror-state';
 import { Node as ProsemirrorNode } from '@tiptap/pm/model';
 import { JSONContent } from '@tiptap/react';
 import { Markdown } from 'tiptap-markdown';
@@ -45,6 +45,7 @@ import { loadSavedContent, saveContent } from './utils/editorStorage';
 import { EditorProps, ToastMessage, TableOfContentsItem, DialogPosition } from './types/editor';
 import './styles/aiToolbar.css';
 import './styles/editor.css';
+import { CellSelection } from '@tiptap/pm/state';
 
 const lowlight = createLowlight(common);
 
@@ -57,6 +58,55 @@ interface SavedContent {
 interface DocumentSection extends ISectionOptions {
   children: (Paragraph | DocxTable)[];
 }
+
+// 自定义表格扩展
+const CustomTable = Table.extend({
+  addNodeView() {
+    return (node, view, getPos) => {
+      const dom = document.createElement('div');
+      dom.className = 'tableWrapper';
+      const table = document.createElement('table');
+      table.className = 'markdown-table';
+      
+      // 添加点击事件处理
+      table.addEventListener('click', (event) => {
+        const cell = (event.target as HTMLElement).closest('td, th');
+        if (cell) {
+          const cells = table.querySelectorAll('td, th');
+          cells.forEach(c => c.classList.remove('is-selected'));
+          cell.classList.add('is-selected');
+        }
+      });
+      
+      dom.appendChild(table);
+      return {
+        dom,
+        contentDOM: table,
+        ignoreMutation: () => false,
+        update: (node) => {
+          return node.type.name === 'table';
+        },
+      };
+    };
+  },
+});
+
+// 自定义表格单元格扩展
+const CustomTableCell = TableCell.extend({
+  addAttributes() {
+    const parentAttributes = this.parent?.() || {};
+    return {
+      ...parentAttributes,
+      selected: {
+        default: false,
+        parseHTML: () => false,
+        renderHTML: attributes => {
+          return attributes.selected ? { class: 'is-selected' } : {};
+        },
+      },
+    };
+  },
+});
 
 export const Editor = ({ 
   content = '', 
@@ -137,15 +187,15 @@ export const Editor = ({
         html: false,
         breaks: true,
       }),
-      Table.configure({
+      CustomTable.configure({
         HTMLAttributes: {
           class: 'markdown-table',
         },
-        resizable: false,
-        handleWidth: 0,
+        resizable: true,
+        handleWidth: 5,
         cellMinWidth: 100,
-        lastColumnResizable: false,
-        allowTableNodeSelection: false,
+        lastColumnResizable: true,
+        allowTableNodeSelection: true,
       }),
       TableRow.configure({
         HTMLAttributes: {
@@ -157,9 +207,9 @@ export const Editor = ({
           class: '',
         },
       }),
-      TableCell.configure({
+      CustomTableCell.configure({
         HTMLAttributes: {
-          class: '',
+          class: 'table-cell',
         },
       }),
       TaskList,
@@ -361,6 +411,42 @@ export const Editor = ({
       });
     }
   }, [editor, debouncedAutoSave]);
+
+  // 添加表格单元格点击处理
+  useEffect(() => {
+    if (!editor) return;
+
+    const handleTableCellClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      const cell = target.closest('td, th');
+      if (!cell || !editor.isActive('table')) return;
+
+      // 清除其他单元格的选中状态
+      editor.view.dom.querySelectorAll('td.is-selected, th.is-selected').forEach(el => {
+        el.classList.remove('is-selected');
+      });
+
+      // 添加选中状态
+      cell.classList.add('is-selected');
+
+      // 聚焦编辑器并选中单元格内容
+      editor.commands.focus();
+      const cellContent = cell.textContent || '';
+      if (cellContent) {
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(cell);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+      }
+    };
+
+    editor.view.dom.addEventListener('click', handleTableCellClick);
+
+    return () => {
+      editor.view.dom.removeEventListener('click', handleTableCellClick);
+    };
+  }, [editor]);
 
   useEffect(() => {
     if (!editor) return;
