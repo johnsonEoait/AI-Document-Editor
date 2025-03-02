@@ -417,6 +417,36 @@ export const Editor = ({
     }
   }, [title, setLastSaveTime, setToast]);
 
+  // 添加键盘快捷键保存函数
+  const handleKeyboardSave = useCallback((event: KeyboardEvent) => {
+    // 检测 Ctrl+S 或 Command+S (Mac)
+    if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+      event.preventDefault(); // 阻止浏览器默认的保存行为
+      
+      console.log('检测到保存快捷键 (Ctrl+S)');
+      
+      const currentEditor = editorRef.current;
+      if (!currentEditor) {
+        console.warn('编辑器实例不存在，无法保存');
+        return;
+      }
+      
+      // 确保编辑器状态已更新
+      currentEditor.view.updateState(currentEditor.view.state);
+      
+      // 直接调用保存函数
+      saveContent(currentEditor, title, false, setLastSaveTime, setToast);
+      
+      // 显示保存成功提示
+      if (setToast) {
+        setToast({
+          message: '内容已保存 (Ctrl+S)',
+          type: 'success'
+        });
+      }
+    }
+  }, [title, setLastSaveTime, setToast]);
+
   // 使用 useEffect 来加载保存的内容
   useEffect(() => {
     const savedData = loadSavedContent();
@@ -467,6 +497,17 @@ export const Editor = ({
       editor.view.dom.removeEventListener('force-save-content', handleForceSave);
     };
   }, [editor, handleImageResize, saveContentDirectly]);
+
+  // 添加键盘快捷键监听
+  useEffect(() => {
+    // 添加全局键盘事件监听器
+    window.addEventListener('keydown', handleKeyboardSave);
+    
+    // 清理函数
+    return () => {
+      window.removeEventListener('keydown', handleKeyboardSave);
+    };
+  }, [handleKeyboardSave]);
 
   // 初始化目录内容和标题
   useEffect(() => {
