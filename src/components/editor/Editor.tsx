@@ -28,7 +28,7 @@ import { CustomHighlight } from './utils/CustomHighlight';
 import { FontSize } from './utils/FontSize';
 import { CustomCitation } from './utils/CustomCitation';
 import { InlineLinkEditor } from './InlineLinkEditor';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { ConfirmDialog } from './ConfirmDialog';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table as DocxTable, TableRow as DocxTableRow, TableCell as DocxTableCell, BorderStyle, ISectionOptions, IStylesOptions } from 'docx';
 import debounce from 'lodash/debounce';
@@ -45,7 +45,6 @@ import { loadSavedContent, saveContent } from './utils/editorStorage';
 import { EditorProps, ToastMessage, TableOfContentsItem, DialogPosition } from './types/editor';
 import './styles/aiToolbar.css';
 import './styles/editor.css';
-import { CellSelection } from '@tiptap/pm/state';
 
 const lowlight = createLowlight(common);
 
@@ -62,7 +61,7 @@ interface DocumentSection extends ISectionOptions {
 // 自定义表格扩展
 const CustomTable = Table.extend({
   addNodeView() {
-    return (node, view, getPos) => {
+    return ({ node, view, getPos }) => {
       const dom = document.createElement('div');
       dom.className = 'tableWrapper';
       const table = document.createElement('table');
@@ -83,8 +82,8 @@ const CustomTable = Table.extend({
         dom,
         contentDOM: table,
         ignoreMutation: () => false,
-        update: (node) => {
-          return node.type.name === 'table';
+        update: (updatedNode) => {
+          return updatedNode.type.name === 'table';
         },
       };
     };
@@ -123,14 +122,7 @@ export const Editor = ({
   const [title, setTitle] = useState<string>('未命名文档');
   const [showToc, setShowToc] = useState(false);
   const [tableOfContents, setTableOfContents] = useState<TableOfContentsItem[]>([]);
-
-  // 使用 useEffect 来加载保存的内容
-  useEffect(() => {
-    const savedData = loadSavedContent();
-    if (savedData?.title) {
-      setTitle(savedData.title);
-    }
-  }, []);
+  const editorRef = useRef<ReturnType<typeof useEditor> | null>(null);
 
   // 更新目录的函数
   const updateTableOfContents = useCallback((editor: any) => {
@@ -141,12 +133,48 @@ export const Editor = ({
 
   // 创建防抖的自动保存函数
   const debouncedAutoSave = useCallback(
-    debounce((editor: ReturnType<typeof useEditor>) => {
-      if (!editor) return;
-      saveContent(editor, title, true, setLastSaveTime, setToast);
+    debounce((editorInstance: ReturnType<typeof useEditor>) => {
+      if (!editorInstance) return;
+      saveContent(editorInstance, title, true, setLastSaveTime, setToast);
     }, 2000),
     [title]
   );
+
+  // 添加直接保存函数，不使用防抖
+  const saveContentDirectly = useCallback(() => {
+    const currentEditor = editorRef.current;
+    if (!currentEditor) {
+      console.warn('编辑器实例不存在，无法直接保存');
+      return;
+    }
+    
+    console.log('直接保存内容');
+    
+    // 确保编辑器状态已更新
+    currentEditor.view.updateState(currentEditor.view.state);
+    
+    // 直接调用保存函数
+    saveContent(currentEditor, title, false, setLastSaveTime, setToast);
+    
+    // 验证保存后的内容
+    setTimeout(() => {
+      const savedData = localStorage.getItem('editor-content');
+      if (savedData) {
+        try {
+          const parsedData = JSON.parse(savedData);
+          console.log('验证直接保存的内容:', {
+            title: parsedData.title,
+            lastSaved: parsedData.lastSaved,
+            contentSize: JSON.stringify(parsedData.content).length
+          });
+        } catch (error) {
+          console.error('解析保存的内容失败:', error);
+        }
+      } else {
+        console.warn('未找到保存的内容');
+      }
+    }, 100);
+  }, [title, setLastSaveTime, setToast]);
 
   const editor = useEditor({
     extensions: [
@@ -272,8 +300,23 @@ export const Editor = ({
         // 每次内容更新时都更新目录
         updateTableOfContents(editor);
         
-        // 触发自动保存
-        debouncedAutoSave(editor);
+        // 检查是否有图片节点更新
+        let hasImageUpdate = false;
+        editor.state.doc.descendants((node) => {
+          if (node.type.name === 'customImage' && (node.attrs.width || node.attrs.height)) {
+            hasImageUpdate = true;
+            return false; // 找到一个就停止
+          }
+          return true;
+        });
+        
+        // 如果有图片更新，立即保存
+        if (hasImageUpdate) {
+          saveContent(editor, title, true, setLastSaveTime, setToast);
+        } else {
+          // 否则使用防抖自动保存
+          debouncedAutoSave(editor);
+        }
       }, 0);
     },
     editable: true,
@@ -289,6 +332,99 @@ export const Editor = ({
     enableCoreExtensions: true,
   });
 
+  // 更新 editorRef
+  useEffect(() => {
+    editorRef.current = editor;
+  }, [editor]);
+
+  // 添加图片调整大小后的保存函数
+  const handleImageResize = useCallback(() => {
+    const currentEditor = editorRef.current;
+    if (!currentEditor) return;
+    
+    console.log('图片调整大小事件触发');
+    
+    // 确保编辑器状态已更新
+    currentEditor.view.updateState(currentEditor.view.state);
+    
+    // 获取所有图片节点并确保尺寸属性正确
+    let imageNodes = 0;
+    let hasValidImages = false;
+    
+    currentEditor.state.doc.descendants((node, pos) => {
+      if (node.type.name === 'customImage') {
+        imageNodes++;
+        
+        // 检查并记录图片尺寸信息
+        const width = node.attrs.width;
+        const height = node.attrs.height;
+        const originalAspectRatio = node.attrs._originalAspectRatio;
+        const currentAspectRatio = node.attrs._currentAspectRatio;
+        
+        console.log('图片节点属性:', {
+          pos,
+          width,
+          height,
+          originalAspectRatio,
+          currentAspectRatio,
+          calculatedRatio: width && height ? (width / height) : null,
+          type: typeof width,
+          isNumber: !isNaN(Number(width))
+        });
+        
+        // 验证宽高是否有效
+        if (width && height && !isNaN(Number(width)) && !isNaN(Number(height))) {
+          hasValidImages = true;
+        }
+      }
+      return true;
+    });
+    
+    console.log(`找到 ${imageNodes} 个图片节点，有效图片: ${hasValidImages ? '是' : '否'}`);
+    
+    if (imageNodes > 0) {
+      // 立即保存内容以确保图片尺寸被持久化
+      setTimeout(() => {
+        try {
+          // 再次检查编辑器状态
+          currentEditor.view.updateState(currentEditor.view.state);
+          
+          // 输出完整的JSON以便调试
+          const contentToSave = currentEditor.getJSON();
+          console.log('准备保存的内容:', contentToSave);
+          
+          // 直接调用保存函数
+          saveContent(currentEditor, title, false, setLastSaveTime, setToast);
+          
+          // 验证保存后的内容
+          setTimeout(() => {
+            const savedData = localStorage.getItem('editor-content');
+            if (savedData) {
+              try {
+                const parsedData = JSON.parse(savedData);
+                console.log('验证保存的内容:', parsedData);
+              } catch (error) {
+                console.error('解析保存的内容失败:', error);
+              }
+            } else {
+              console.warn('未找到保存的内容');
+            }
+          }, 100);
+        } catch (error) {
+          console.error('保存图片尺寸失败:', error);
+        }
+      }, 50);
+    }
+  }, [title, setLastSaveTime, setToast]);
+
+  // 使用 useEffect 来加载保存的内容
+  useEffect(() => {
+    const savedData = loadSavedContent();
+    if (savedData?.title) {
+      setTitle(savedData.title);
+    }
+  }, []);
+
   // 设置最后保存时间
   useEffect(() => {
     const savedData = loadSavedContent();
@@ -297,6 +433,105 @@ export const Editor = ({
       setLastSaveTime(date.toLocaleTimeString());
     }
   }, []);
+
+  // 添加监听图片操作的事件
+  useEffect(() => {
+    if (!editor) return;
+    
+    // 监听图片相关事件
+    const handleImageEvents = (event: Event) => {
+      console.log('图片事件触发:', event.type);
+      
+      // 延迟保存以确保所有更改都已应用
+      setTimeout(() => {
+        handleImageResize();
+        
+        // 额外调用直接保存函数
+        setTimeout(saveContentDirectly, 200);
+      }, 100);
+    };
+    
+    // 添加强制保存事件监听
+    const handleForceSave = () => {
+      console.log('强制保存事件触发');
+      saveContentDirectly();
+    };
+    
+    // 添加事件监听
+    editor.view.dom.addEventListener('image-resize-complete', handleImageEvents);
+    editor.view.dom.addEventListener('force-save-content', handleForceSave);
+    
+    return () => {
+      // 移除事件监听
+      editor.view.dom.removeEventListener('image-resize-complete', handleImageEvents);
+      editor.view.dom.removeEventListener('force-save-content', handleForceSave);
+    };
+  }, [editor, handleImageResize, saveContentDirectly]);
+
+  // 初始化目录内容和标题
+  useEffect(() => {
+    if (editor && showToc) {
+      updateTableOfContents(editor);
+    }
+  }, [editor, showToc, updateTableOfContents]);
+
+  // 添加表格单元格点击处理
+  useEffect(() => {
+    if (!editor) return;
+
+    const handleTableCellClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      const cell = target.closest('td, th');
+      if (!cell || !editor.isActive('table')) return;
+
+      // 清除其他单元格的选中状态
+      editor.view.dom.querySelectorAll('td.is-selected, th.is-selected').forEach(el => {
+        el.classList.remove('is-selected');
+      });
+
+      // 添加选中状态
+      cell.classList.add('is-selected');
+
+      // 聚焦编辑器并选中单元格内容
+      editor.commands.focus();
+      const cellContent = cell.textContent || '';
+      if (cellContent) {
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(cell);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+      }
+    };
+
+    editor.view.dom.addEventListener('click', handleTableCellClick);
+
+    return () => {
+      editor.view.dom.removeEventListener('click', handleTableCellClick);
+    };
+  }, [editor]);
+
+  useEffect(() => {
+    if (!editor) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && (e.key === '/' || e.key === '？')) {
+        e.preventDefault();
+        // 如果有选中的文本，显示 AI 工具栏
+        if (editor.state.selection.content().size > 0 && editor.aiToolbar?.show) {
+          editor.aiToolbar.show();
+        }
+      }
+    };
+
+    // 添加事件监听器
+    editor.view.dom.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      // 移除事件监听器
+      editor.view.dom.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [editor]);
 
   const handleSave = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     if (!editor) return;
@@ -363,13 +598,6 @@ export const Editor = ({
     });
   }, [editor, showToc, updateTableOfContents]);
 
-  // 初始化目录内容和标题
-  useEffect(() => {
-    if (editor && showToc) {
-      updateTableOfContents(editor);
-    }
-  }, [editor, showToc, updateTableOfContents]);
-
   // 修改标题输入框的onChange处理
   const handleTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
@@ -411,64 +639,6 @@ export const Editor = ({
       });
     }
   }, [editor, debouncedAutoSave]);
-
-  // 添加表格单元格点击处理
-  useEffect(() => {
-    if (!editor) return;
-
-    const handleTableCellClick = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      const cell = target.closest('td, th');
-      if (!cell || !editor.isActive('table')) return;
-
-      // 清除其他单元格的选中状态
-      editor.view.dom.querySelectorAll('td.is-selected, th.is-selected').forEach(el => {
-        el.classList.remove('is-selected');
-      });
-
-      // 添加选中状态
-      cell.classList.add('is-selected');
-
-      // 聚焦编辑器并选中单元格内容
-      editor.commands.focus();
-      const cellContent = cell.textContent || '';
-      if (cellContent) {
-        const selection = window.getSelection();
-        const range = document.createRange();
-        range.selectNodeContents(cell);
-        selection?.removeAllRanges();
-        selection?.addRange(range);
-      }
-    };
-
-    editor.view.dom.addEventListener('click', handleTableCellClick);
-
-    return () => {
-      editor.view.dom.removeEventListener('click', handleTableCellClick);
-    };
-  }, [editor]);
-
-  useEffect(() => {
-    if (!editor) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.altKey && (e.key === '/' || e.key === '？')) {
-        e.preventDefault();
-        // 如果有选中的文本，显示 AI 工具栏
-        if (editor.state.selection.content().size > 0 && editor.aiToolbar?.show) {
-          editor.aiToolbar.show();
-        }
-      }
-    };
-
-    // 添加事件监听器
-    editor.view.dom.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      // 移除事件监听器
-      editor.view.dom.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [editor]);
 
   if (!editor) {
     return null;

@@ -333,4 +333,21 @@
 /* Add a subtle hover effect for format options */
 [data-radix-dropdown-menu-item]:hover {
   background-color: rgba(0, 0, 0, 0.03);
+}
+
+/* Ensure dropdown menus appear on top */
+[data-radix-popper-content-wrapper] {
+  z-index: 9999 !important;
+  position: relative !important;
+}
+
+/* Style for dropdown menu content */
+[data-radix-dropdown-menu-content] {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(229, 231, 235, 0.5);
+  overflow: hidden;
+  animation: fadeIn 0.2s ease;
 } 

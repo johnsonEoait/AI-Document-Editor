@@ -95,12 +95,47 @@ const tools: Tool[] = [
         required: ['text', 'format']
       }
     }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'generateImage',
+      description: '根据提示生成图像',
+      parameters: {
+        type: 'object',
+        properties: {
+          prompt: {
+            type: 'string',
+            description: '图像生成提示词'
+          }
+        },
+        required: ['prompt']
+      }
+    }
   }
 ];
 
 export async function POST(request: Request) {
   try {
     const { text, prompt, mode } = await request.json();
+
+    // 处理图像生成模式
+    if (mode === 'image') {
+      try {
+        // 生成图像并获取URL和尺寸信息
+        const { imageUrl, width, height, aspectRatio } = await generateImage(prompt);
+        return NextResponse.json({ imageUrl, width, height, aspectRatio });
+      } catch (error: any) {
+        console.error('图像生成出错:', error);
+        return NextResponse.json(
+          { 
+            error: '图像生成失败',
+            details: error.message || '未知错误',
+          },
+          { status: 500 }
+        );
+      }
+    }
 
     // 获取当前文档的上下文信息
     const documentContext = text ? `当前文档内容：\n${text}\n\n` : '';
@@ -462,4 +497,183 @@ ${text}
   });
 
   return completion.choices[0]?.message?.content || '';
+}
+
+// 生成图像的函数
+async function generateImage(prompt: string): Promise<{ imageUrl: string, width: number, height: number, aspectRatio: string }> {
+  // 确保提示词是英文
+  const translatedPrompt = await translateToEnglish(prompt);
+  
+  // 优化提示词以获得更好的图像生成效果
+  const optimizedPrompt = optimizeImagePrompt(translatedPrompt);
+  
+  // 根据提示词确定合适的图像尺寸
+  const { width, height, aspectRatio } = await determineImageDimensions(translatedPrompt);
+  
+  try {
+    // 调用Together AI的图像生成API
+    const response = await fetch('https://api.together.xyz/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.TOGETHER_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'black-forest-labs/FLUX.1-schnell',
+        prompt: optimizedPrompt,
+        width,
+        height,
+        steps: 4,
+        n: 1,
+        response_format: 'b64_json'
+      })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('图像生成API错误:', errorData);
+      throw new Error(`图像生成失败: ${errorData.error || response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    // 返回base64编码的图像数据
+    if (data.data && data.data[0] && data.data[0].b64_json) {
+      const imageUrl = `data:image/png;base64,${data.data[0].b64_json}`;
+      return { imageUrl, width, height, aspectRatio };
+    } else {
+      throw new Error('图像生成API返回了无效的数据格式');
+    }
+  } catch (error: any) {
+    console.error('图像生成出错:', error);
+    throw new Error(`图像生成失败: ${error.message}`);
+  }
+}
+
+// 将中文提示词翻译为英文
+async function translateToEnglish(prompt: string): Promise<string> {
+  // 检查提示词是否包含中文字符
+  const containsChinese = /[\u4e00-\u9fa5]/.test(prompt);
+  
+  if (!containsChinese) {
+    return prompt; // 如果不包含中文，直接返回原始提示词
+  }
+  
+  const messages: ChatCompletionMessageParam[] = [
+    {
+      role: 'system',
+      content: `你是一个专业的翻译助手。请将以下中文提示词翻译成英文，以便用于图像生成。
+请注意：
+1. 只输出翻译后的英文内容，不要添加任何解释
+2. 保持专业、准确的翻译
+3. 使用适合图像生成的英文表达方式
+4. 不要使用引号包裹输出内容`
+    },
+    {
+      role: 'user',
+      content: `请将以下图像生成提示词翻译成英文：
+
+${prompt}
+
+只输出翻译后的英文内容，不要添加任何解释。`
+    }
+  ];
+
+  const completion = await openai.chat.completions.create({
+    model: process.env.OPENAI_MODEL || 'glm-4-flash',
+    messages,
+    temperature: 0.3,
+  });
+
+  return completion.choices[0]?.message?.content?.trim() || prompt;
+}
+
+// 优化图像生成提示词
+function optimizeImagePrompt(prompt: string): string {
+  // 如果提示词太短，添加一些通用的优化词汇
+  if (prompt.length < 10) {
+    return `${prompt}, high quality, detailed, 4k, realistic, professional photography`;
+  }
+  
+  // 如果提示词没有包含质量相关的描述，添加一些通用的质量描述
+  if (!prompt.toLowerCase().includes('quality') && 
+      !prompt.toLowerCase().includes('detailed') && 
+      !prompt.toLowerCase().includes('resolution')) {
+    return `${prompt}, high quality, detailed`;
+  }
+  
+  return prompt;
+}
+
+// 根据提示词确定合适的图像尺寸
+async function determineImageDimensions(prompt: string): Promise<{ width: number, height: number, aspectRatio: string }> {
+  // 默认尺寸
+  const defaultDimensions = { width: 1024, height: 768, aspectRatio: '4:3' };
+  
+  // 常见的图像尺寸比例
+  const commonAspectRatios = [
+    { name: '1:1', width: 1024, height: 1024 },       // 正方形
+    { name: '4:3', width: 1024, height: 768 },        // 标准显示器
+    { name: '16:9', width: 1024, height: 576 },       // 宽屏
+    { name: '3:4', width: 768, height: 1024 },        // 纵向标准
+    { name: '9:16', width: 576, height: 1024 },       // 纵向宽屏/手机屏幕
+    { name: '3:2', width: 1024, height: 683 },        // 传统相机
+    { name: '2:3', width: 683, height: 1024 },        // 纵向传统相机
+    { name: '21:9', width: 1024, height: 439 },       // 超宽屏
+    { name: '9:21', width: 439, height: 1024 },       // 纵向超宽屏
+  ];
+  
+  try {
+    const messages: ChatCompletionMessageParam[] = [
+      {
+        role: 'system',
+        content: `你是一个专业的图像生成助手。请根据用户的图像描述，确定最适合的图像尺寸比例。
+请从以下选项中选择一个最合适的尺寸比例：
+${commonAspectRatios.map(ratio => `- ${ratio.name}: ${ratio.width}x${ratio.height}`).join('\n')}
+
+请注意：
+1. 只输出一个尺寸比例的名称，不要添加任何解释
+2. 根据图像内容选择最合适的比例：
+   - 人像通常适合3:4或9:16
+   - 风景通常适合4:3或16:9
+   - 产品展示通常适合1:1或4:3
+   - 海报通常适合2:3或9:16
+   - 横幅通常适合16:9或21:9
+3. 不要输出任何额外的文本，只输出比例名称（如"16:9"）`
+      },
+      {
+        role: 'user',
+        content: `根据以下图像描述，选择最合适的尺寸比例：
+
+${prompt}
+
+只输出一个尺寸比例的名称（如"16:9"），不要添加任何解释。`
+      }
+    ];
+
+    const completion = await openai.chat.completions.create({
+      model: process.env.OPENAI_MODEL || 'glm-4-flash',
+      messages,
+      temperature: 0.3,
+    });
+
+    const aspectRatio = completion.choices[0]?.message?.content?.trim() || '4:3';
+    
+    // 查找匹配的尺寸
+    const selectedRatio = commonAspectRatios.find(ratio => ratio.name === aspectRatio);
+    
+    if (selectedRatio) {
+      console.log(`为提示词"${prompt.substring(0, 30)}..."选择的图像尺寸: ${selectedRatio.width}x${selectedRatio.height} (${aspectRatio})`);
+      return { 
+        width: selectedRatio.width, 
+        height: selectedRatio.height, 
+        aspectRatio: selectedRatio.name 
+      };
+    }
+    
+    return defaultDimensions;
+  } catch (error) {
+    console.error('确定图像尺寸出错:', error);
+    return defaultDimensions;
+  }
 } 

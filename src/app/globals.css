@@ -9,6 +9,23 @@
   max-width: none !important;
 }
 
+/* 改进图片容器的样式，减少不必要的间距 */
+.prose img {
+  margin: 0 !important;
+}
+
+/* 段落间距调整 */
+.prose p {
+  margin-top: 0.75em !important;
+  margin-bottom: 0.75em !important;
+}
+
+/* 图片和文本之间的间距调整 */
+.prose p + .image-resizable-container,
+.prose .image-resizable-container + p {
+  margin-top: 0.5em !important;
+}
+
 @keyframes slideIn {
   from {
     transform: translateY(-100%);
@@ -66,11 +83,17 @@
   }
 }
 
+/* 完全重构图片容器样式 */
 .image-resizable-container {
   display: inline-block;
   position: relative;
-  margin: 4px;
+  margin: 0 !important;
+  padding: 0 !important;
   user-select: none;
+  line-height: 0;
+  font-size: 0;
+  vertical-align: middle;
+  box-sizing: border-box;
 }
 
 .image-resizable-container img {
@@ -78,8 +101,12 @@
   max-width: 100%;
   height: auto;
   pointer-events: all;
+  margin: 0 !important;
+  padding: 0 !important;
+  vertical-align: top;
 }
 
+/* 选择框样式 */
 .image-resizable-container .selection-frame {
   position: absolute;
   top: 0;
@@ -97,6 +124,7 @@
   display: block;
 }
 
+/* 调整手柄样式 */
 .image-resizable-container .resize-handle {
   position: absolute;
   width: 12px;
@@ -104,20 +132,19 @@
   background-color: #2563eb;
   border: 2px solid white;
   border-radius: 50%;
-  z-index: 2;
+  z-index: 10;
   display: none;
   pointer-events: all;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
 }
 
 .image-resizable-container.selected .resize-handle {
-  display: block;
+  display: block !important;
 }
 
-.resize-handle-nw { top: -6px; left: -6px; cursor: nw-resize !important; }
-.resize-handle-n { top: -6px; left: 50%; transform: translateX(-50%); cursor: n-resize !important; }
-.resize-handle-ne { top: -6px; right: -6px; cursor: ne-resize !important; }
-.resize-handle-e { top: 50%; right: -6px; transform: translateY(-50%); cursor: e-resize !important; }
-.resize-handle-se { bottom: -6px; right: -6px; cursor: se-resize !important; }
-.resize-handle-s { bottom: -6px; left: 50%; transform: translateX(-50%); cursor: s-resize !important; }
-.resize-handle-sw { bottom: -6px; left: -6px; cursor: sw-resize !important; }
-.resize-handle-w { top: 50%; left: -6px; transform: translateY(-50%); cursor: w-resize !important; }
+/* 重构调整手柄位置样式，保持简洁 */
+.resize-handle-nw { top: 0; left: 0; cursor: nw-resize !important; }
+.resize-handle-ne { top: 0; left: 100%; cursor: ne-resize !important; }
+.resize-handle-se { top: 100%; left: 100%; cursor: se-resize !important; }
+.resize-handle-sw { top: 100%; left: 0; cursor: sw-resize !important; }

@@ -2,103 +2,21 @@
 
 import { Editor } from '@tiptap/react';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Wand2, Send, X, Check, RotateCcw, Loader2, GripHorizontal, Sparkles, Type, ChevronDown } from 'lucide-react';
-import * as Popover from '@radix-ui/react-popover';
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { Decoration, DecorationSet } from '@tiptap/pm/view';
-import { Plugin, PluginKey } from '@tiptap/pm/state';
-import { debounce } from 'lodash';
-import MarkdownIt from 'markdown-it';
+import { FloatingAIToolbarProps, SelectionRange, AIProcessMode, SparkleEffect, DragState } from './types/aiToolbar';
+import { createAIHighlightPlugin } from './utils/aiHighlightPlugin';
+import { calculateToolbarPosition, createSparkleEffects } from './utils/aiToolbarPosition';
+import { handleAIRequest } from './utils/aiRequestHandler';
+import { cleanGeneratedContent } from './utils/markdownUtils';
 import './styles/aiToolbar.css';
 
-// Initialize markdown-it instance
-const md = new MarkdownIt({
-  html: false,
-  breaks: true,
-  linkify: true,
-});
-
-// Function to convert HTML to Markdown
-const htmlToMarkdown = (html: string): string => {
-  // Replace HTML tags with Markdown equivalents
-  let markdown = html;
-  
-  // Replace paragraph tags
-  markdown = markdown.replace(/<p>(.*?)<\/p>/g, '$1\n\n');
-  
-  // Replace strong/bold tags
-  markdown = markdown.replace(/<strong>(.*?)<\/strong>/g, '**$1**');
-  markdown = markdown.replace(/<b>(.*?)<\/b>/g, '**$1**');
-  
-  // Replace emphasis/italic tags
-  markdown = markdown.replace(/<em>(.*?)<\/em>/g, '*$1*');
-  markdown = markdown.replace(/<i>(.*?)<\/i>/g, '*$1*');
-  
-  // Replace heading tags
-  markdown = markdown.replace(/<h1>(.*?)<\/h1>/g, '# $1\n');
-  markdown = markdown.replace(/<h2>(.*?)<\/h2>/g, '## $1\n');
-  markdown = markdown.replace(/<h3>(.*?)<\/h3>/g, '### $1\n');
-  markdown = markdown.replace(/<h4>(.*?)<\/h4>/g, '#### $1\n');
-  markdown = markdown.replace(/<h5>(.*?)<\/h5>/g, '##### $1\n');
-  markdown = markdown.replace(/<h6>(.*?)<\/h6>/g, '###### $1\n');
-  
-  // Replace list items
-  markdown = markdown.replace(/<li>(.*?)<\/li>/g, '- $1\n');
-  
-  // Replace unordered lists - using workaround for 's' flag
-  markdown = markdown.replace(/<ul>([^]*?)<\/ul>/g, '$1\n');
-  
-  // Replace ordered lists - using workaround for 's' flag
-  markdown = markdown.replace(/<ol>([^]*?)<\/ol>/g, '$1\n');
-  
-  // Replace blockquotes - using workaround for 's' flag
-  markdown = markdown.replace(/<blockquote>([^]*?)<\/blockquote>/g, '> $1\n');
-  
-  // Replace code blocks - using workaround for 's' flag
-  markdown = markdown.replace(/<pre><code>([^]*?)<\/code><\/pre>/g, '```\n$1\n```\n');
-  
-  // Replace inline code
-  markdown = markdown.replace(/<code>(.*?)<\/code>/g, '`$1`');
-  
-  // Replace links
-  markdown = markdown.replace(/<a href="(.*?)">(.*?)<\/a>/g, '[$2]($1)');
-  
-  // Replace images
-  markdown = markdown.replace(/<img src="(.*?)" alt="(.*?)">/g, '![$2]($1)');
-  
-  // Replace line breaks
-  markdown = markdown.replace(/<br>/g, '\n');
-  
-  // Replace horizontal rules
-  markdown = markdown.replace(/<hr>/g, '---\n');
-  
-  // Clean up extra spaces and line breaks
-  markdown = markdown.replace(/\n\s*\n\s*\n/g, '\n\n');
-  
-  // Remove any remaining HTML tags
-  markdown = markdown.replace(/<[^>]*>/g, '');
-  
-  // Decode HTML entities
-  const textarea = document.createElement('textarea');
-  textarea.innerHTML = markdown;
-  markdown = textarea.value;
-  
-  return markdown;
-};
-
-// 扩展 Editor 类型
-declare module '@tiptap/react' {
-  interface Editor {
-    aiToolbar?: {
-      show: () => void;
-    };
-  }
-}
-
-interface FloatingAIToolbarProps {
-  editor: Editor;
-  onLoadingChange: (isLoading: boolean) => void;
-}
+// 导入子组件
+import { AIToolbarHeader } from './components/AIToolbarHeader';
+import { AIToolbarInput } from './components/AIToolbarInput';
+import { AIToolbarFooter } from './components/AIToolbarFooter';
+import { AIGeneratedContent } from './components/AIGeneratedContent';
+import { AISelectedText } from './components/AISelectedText';
+import { AISparkleEffect } from './components/AISparkleEffect';
+import { AIGeneratedImage } from './components/AIGeneratedImage';
 
 export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbarProps) => {
   const [isVisible, setIsVisible] = useState(false);
@@ -106,64 +24,40 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
   const [isLoading, setIsLoading] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [generatedContent, setGeneratedContent] = useState('');
-  const [mode, setMode] = useState<'process' | 'generate' | 'format'>('process');
+  const [generatedImageUrl, setGeneratedImageUrl] = useState('');
+  const [imageDimensions, setImageDimensions] = useState<{ width: number, height: number, aspectRatio: string } | null>(null);
+  const [mode, setMode] = useState<AIProcessMode>('process');
   const [formatType, setFormatType] = useState<string>('');
-  const selectionRef = useRef<{ from: number; to: number } | null>(null);
-  const pluginKey = new PluginKey('aiHighlight');
+  const [sparkles, setSparkles] = useState<SparkleEffect[]>([]);
+  
+  const selectionRef = useRef<SelectionRange | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const dragRef = useRef<{ isDragging: boolean; startX: number; startY: number }>({
+  const dragRef = useRef<DragState>({
     isDragging: false,
     startX: 0,
     startY: 0
   });
-  const [sparkles, setSparkles] = useState<Array<{id: number, x: number, y: number, size: number, delay: number}>>([]);
 
-  // 创建高亮插件
+  // 创建并注册高亮插件
   useEffect(() => {
     if (!editor) return;
 
-    const plugin = new Plugin({
-      key: pluginKey,
-      props: {
-        decorations: (state) => {
-          if (!selectionRef.current) return DecorationSet.empty;
-          
-          const { from, to } = selectionRef.current;
-          return DecorationSet.create(state.doc, [
-            Decoration.inline(from, to, {
-              class: 'ai-processing-highlight',
-            }),
-          ]);
-        },
-      },
-    });
-
-    editor.registerPlugin(plugin);
+    const { registerPlugin, unregisterPlugin } = createAIHighlightPlugin(editor, selectionRef);
+    registerPlugin();
 
     return () => {
-      editor.unregisterPlugin(pluginKey);
+      unregisterPlugin();
     };
   }, [editor]);
 
   // 计算工具栏位置的函数
-  const calculatePosition = useCallback((to: number) => {
-    if (!editor) return null;
+  const updateToolbarPosition = useCallback((to: number) => {
+    if (!editor) return;
 
-    const coords = editor.view.coordsAtPos(to);
-    const editorRect = editor.view.dom.getBoundingClientRect();
-    
-    // 确保工具栏不会超出编辑器边界
-    const x = Math.min(
-      Math.max(coords.left, editorRect.left),
-      editorRect.right - 400 // 假设工具栏宽度为 400px
-    );
-    
-    const y = Math.min(
-      coords.bottom + 10,
-      editorRect.bottom - 300 // 假设工具栏最大高度为 300px
-    );
-
-    return { x, y };
+    const newPosition = calculateToolbarPosition(editor, to);
+    if (newPosition) {
+      setPosition(newPosition);
+    }
   }, [editor]);
 
   // 添加手动触发方法
@@ -190,7 +84,7 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
     if (empty) {
       // 如果没有选中内容，使用当前光标位置
       console.log('showToolbar: Using cursor position');
-      position = calculatePosition(selection.from);
+      position = calculateToolbarPosition(editor, selection.from);
       // 设置插入位置为当前光标位置
       selectionRef.current = { from: selection.from, to: selection.from };
     } else {
@@ -215,7 +109,7 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
       // 保存选中范围并触发高亮更新
       selectionRef.current = { from, to };
       editor.view.dispatch(editor.state.tr);
-      position = calculatePosition(to);
+      position = calculateToolbarPosition(editor, to);
     }
 
     // 设置位置并显示工具栏
@@ -225,18 +119,11 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
       setIsVisible(true);
       
       // 添加魔法效果 - 生成随机的闪光点
-      const newSparkles = Array.from({ length: 8 }, (_, i) => ({
-        id: Date.now() + i,
-        x: Math.random() * 100,
-        y: Math.random() * 100,
-        size: 5 + Math.random() * 15,
-        delay: Math.random() * 0.5
-      }));
-      setSparkles(newSparkles);
+      setSparkles(createSparkleEffects());
     } else {
       console.log('showToolbar: Failed to calculate position');
     }
-  }, [editor, calculatePosition]);
+  }, [editor, calculateToolbarPosition]);
 
   // 暴露方法给外部使用
   useEffect(() => {
@@ -260,10 +147,7 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
     const handleScroll = () => {
       if (selectionRef.current) {
         const { to } = selectionRef.current;
-        const newPosition = calculatePosition(to);
-        if (newPosition) {
-          setPosition(newPosition);
-        }
+        updateToolbarPosition(to);
       }
     };
 
@@ -274,7 +158,7 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
       window.removeEventListener('scroll', handleScroll);
       editor.view.dom.removeEventListener('scroll', handleScroll);
     };
-  }, [editor, isVisible, calculatePosition]);
+  }, [editor, isVisible, updateToolbarPosition]);
 
   // 监听选中内容变化，如果选中内容消失则关闭工具栏
   useEffect(() => {
@@ -339,118 +223,101 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
   }, [isVisible]);
 
   const handleInsertContent = () => {
-    if (!generatedContent) return;
-
-    // HTML 实体解码函数
-    const decodeHtmlEntities = (text: string) => {
-      const textarea = document.createElement('textarea');
-      textarea.innerHTML = text;
-      return textarea.value;
-    };
-
-    // 更彻底地清理生成的内容
-    let cleanedContent = generatedContent;
-    
-    // 1. 解码 HTML 实体
-    cleanedContent = decodeHtmlEntities(cleanedContent);
-    
-    // 2. 移除所有 Markdown 标记中的转义反斜杠 - 使用更全面的正则表达式
-    cleanedContent = cleanedContent.replace(/\\([\\`*_{}\[\]()#+\-.!|>~=])/g, '$1');
-    
-    // 3. 特别处理常见的 Markdown 语法
-    // 处理加粗和斜体
-    cleanedContent = cleanedContent.replace(/\\\*/g, '*');
-    cleanedContent = cleanedContent.replace(/\\_/g, '_');
-    
-    // 处理链接和图片
-    cleanedContent = cleanedContent.replace(/\\\[/g, '[');
-    cleanedContent = cleanedContent.replace(/\\\]/g, ']');
-    cleanedContent = cleanedContent.replace(/\\\(/g, '(');
-    cleanedContent = cleanedContent.replace(/\\\)/g, ')');
-    
-    // 处理代码块
-    cleanedContent = cleanedContent.replace(/\\`/g, '`');
-    
-    // 4. 处理连续的反斜杠
-    cleanedContent = cleanedContent.replace(/\\\\/g, '\\');
-    
-    // 5. 处理特殊的 HTML 标签
-    cleanedContent = cleanedContent.replace(/&lt;/g, '<');
-    cleanedContent = cleanedContent.replace(/&gt;/g, '>');
-    cleanedContent = cleanedContent.replace(/&amp;/g, '&');
-    cleanedContent = cleanedContent.replace(/&quot;/g, '"');
-    cleanedContent = cleanedContent.replace(/&#39;/g, "'");
-
-    // 检查内容是否包含HTML标签
-    const containsHtml = /<[a-z][\s\S]*>/i.test(cleanedContent);
-    
-    // 如果包含HTML标签，转换为Markdown
-    if (containsHtml) {
-      cleanedContent = htmlToMarkdown(cleanedContent);
-      console.log('转换HTML为Markdown:', cleanedContent);
+    if (mode === 'image' && generatedImageUrl) {
+      // 插入生成的图像
+      try {
+        if (selectionRef.current) {
+          const { from } = selectionRef.current;
+          editor.chain().focus().setTextSelection(from).insertContent({
+            type: 'customImage',
+            attrs: { 
+              src: generatedImageUrl,
+              // 如果有尺寸信息，添加到图像属性中
+              width: imageDimensions?.width,
+              height: imageDimensions?.height,
+              alt: `AI生成的图像 (${imageDimensions?.aspectRatio || '4:3'})`
+            }
+          }).run();
+        } else {
+          editor.commands.insertContent({
+            type: 'customImage',
+            attrs: { 
+              src: generatedImageUrl,
+              // 如果有尺寸信息，添加到图像属性中
+              width: imageDimensions?.width,
+              height: imageDimensions?.height,
+              alt: `AI生成的图像 (${imageDimensions?.aspectRatio || '4:3'})`
+            }
+          });
+        }
+        
+        // 重置状态
+        setGeneratedImageUrl('');
+        setImageDimensions(null);
+        setIsVisible(false);
+        setPrompt('');
+        setMode('process');
+        
+        // 延迟清除选中范围和高亮
+        setTimeout(() => {
+          selectionRef.current = null;
+          editor.view.dispatch(editor.state.tr);
+        }, 0);
+      } catch (error) {
+        console.error('Error inserting image:', error);
+        alert('插入图像失败，请重试');
+      }
+      return;
     }
 
-    console.log('清理后的内容:', cleanedContent);
+    if (!generatedContent) return;
 
     try {
+      // 清理生成的内容
+      const cleanedContent = cleanGeneratedContent(generatedContent);
+      
       // 先删除选中的内容
       if (selectionRef.current) {
         const { from, to } = selectionRef.current;
         editor.chain().focus().deleteRange({ from, to }).run();
+        
+        // 在删除的位置插入新内容
+        editor.chain().focus().setTextSelection(from).insertContent(cleanedContent).run();
+      } else {
+        // 如果没有选中内容，在当前位置插入
+        editor.commands.insertContent(cleanedContent);
       }
       
-      // 直接插入文本内容，保留Markdown格式
-      editor.commands.insertContent(cleanedContent);
+      // 重置状态
+      setGeneratedContent('');
+      setIsVisible(false);
+      setPrompt('');
+      setMode('process');
+      setFormatType('');
+      
+      // 延迟清除选中范围和高亮
+      setTimeout(() => {
+        selectionRef.current = null;
+        editor.view.dispatch(editor.state.tr);
+      }, 0);
       
     } catch (error) {
       console.error('Error inserting content:', error);
-      
-      // 如果上述方法失败，尝试最原始的方式：直接插入纯文本
-      try {
-        // 获取当前光标位置
-        const pos = editor.state.selection.from;
-        
-        // 创建一个新的事务
-        const transaction = editor.state.tr;
-        
-        // 如果有选中内容，先删除
-        if (selectionRef.current) {
-          const { from, to } = selectionRef.current;
-          transaction.delete(from, to);
-        }
-        
-        // 直接插入纯文本
-        transaction.insertText(cleanedContent, pos);
-        
-        // 应用事务
-        editor.view.dispatch(transaction);
-      } catch (finalError) {
-        console.error('All insertion methods failed:', finalError);
-        alert('插入内容失败，请重试');
-      }
+      alert('插入内容失败，请重试');
     }
-
-    // 重置状态
-    setGeneratedContent('');
-    setIsVisible(false);
-    setPrompt('');
-    setMode('process');
-    setFormatType('');
-    
-    // 延迟清除选中范围和高亮，避免递归更新
-    setTimeout(() => {
-      selectionRef.current = null;
-      editor.view.dispatch(editor.state.tr);
-    }, 0);
   };
 
   const handleRegenerate = () => {
     setGeneratedContent('');
+    setGeneratedImageUrl('');
+    setImageDimensions(null);
     handleSubmit();
   };
 
   const handleCancel = () => {
     setGeneratedContent('');
+    setGeneratedImageUrl('');
+    setImageDimensions(null);
     setIsVisible(false);
     setPrompt('');
     setMode('process');
@@ -459,21 +326,82 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
     editor.view.dispatch(editor.state.tr);
   };
 
-  // 格式化选项
-  const formatOptions = [
-    { label: '标题 1', value: 'h1', icon: 'H1' },
-    { label: '标题 2', value: 'h2', icon: 'H2' },
-    { label: '标题 3', value: 'h3', icon: 'H3' },
-    { label: '加粗', value: 'bold', icon: 'B' },
-    { label: '斜体', value: 'italic', icon: 'I' },
-    { label: '引用', value: 'blockquote', icon: '>' },
-    { label: '无序列表', value: 'list', icon: '•' },
-    { label: '有序列表', value: 'numbered-list', icon: '1.' },
-    { label: '代码', value: 'code', icon: '</>' },
-    { label: '表格', value: 'table', icon: '⊞' },
-  ];
+  // 处理格式化选择 - 保留但不再使用
+  const handleFormatSelect = (format: string) => {
+    // 不再使用格式化功能
+  };
+
+  // 处理模式变更
+  const handleModeChange = (newMode: AIProcessMode) => {
+    // 只允许 'process', 'generate', 'image' 模式
+    setMode(newMode);
+    setGeneratedContent('');
+    setGeneratedImageUrl('');
+  };
+
+  const handleDragStart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    dragRef.current = {
+      isDragging: true,
+      startX: e.clientX,
+      startY: e.clientY
+    };
+    document.body.style.cursor = 'move';
+  };
 
   const handleSubmit = async () => {
+    if (mode === 'image') {
+      // 处理图像生成请求
+      if (!prompt.trim()) {
+        alert('请输入图像描述');
+        return;
+      }
+      
+      setIsLoading(true);
+      setGeneratedImageUrl('');
+      setImageDimensions(null);
+      
+      try {
+        const response = await fetch('/api/ai/agent', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            prompt: prompt.trim(),
+            mode: 'image'
+          }),
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || error.details || '图像生成失败');
+        }
+        
+        const data = await response.json();
+        if (data.imageUrl) {
+          setGeneratedImageUrl(data.imageUrl);
+          // 保存图像尺寸信息
+          if (data.width && data.height && data.aspectRatio) {
+            setImageDimensions({
+              width: data.width,
+              height: data.height,
+              aspectRatio: data.aspectRatio
+            });
+          }
+        } else {
+          throw new Error('返回的响应没有图像URL');
+        }
+      } catch (error: any) {
+        console.error('图像生成出错:', error);
+        alert(error.message || '图像生成出错，请稍后重试');
+      } finally {
+        setIsLoading(false);
+      }
+      
+      return;
+    }
+    
     let text = '';
     let insertPosition = { from: 0, to: 0 };
     let isGenerating = false; // 标记是否为生成模式
@@ -497,17 +425,7 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
       };
     }
 
-    if (mode === 'format') {
-      if (!formatType) {
-        alert('请选择格式化类型');
-        return;
-      }
-      
-      if (!text) {
-        alert('请先选择要格式化的文本');
-        return;
-      }
-    } else if (!prompt.trim()) {
+    if (!prompt.trim()) {
       alert('请输入提示词');
       return;
     }
@@ -517,58 +435,17 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
     setGeneratedContent(''); // 清空之前的内容
 
     try {
-      // 添加明确的指示，要求使用Markdown格式
-      let actualPrompt = mode === 'format' ? formatType : prompt.trim();
-      if (mode !== 'format') {
-        actualPrompt += " (请使用Markdown格式输出，不要使用HTML标签)";
-      }
-      
-      const response = await fetch('/api/ai/agent', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
+      // 使用AI请求处理工具函数
+      await handleAIRequest(
+        {
           text,
-          prompt: actualPrompt,
-          mode: mode === 'format' ? 'format' : (isGenerating ? 'generate' : 'process') // 添加模式标记
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || error.details || '未知错误');
-      }
-
-      if (!response.body) {
-        throw new Error('返回的响应没有内容');
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      // 流式显示内容
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        
-        const chunk = decoder.decode(value);
-        buffer += chunk;
-
-        // 只在完整的行结束时更新内容
-        if (buffer.includes('\n')) {
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || ''; // 保留最后一个不完整的行
-          setGeneratedContent(prev => prev + lines.join('\n') + '\n');
+          prompt: prompt.trim(),
+          mode: isGenerating ? 'generate' : 'process'
+        },
+        (chunk) => {
+          setGeneratedContent(prev => prev + chunk);
         }
-      }
-
-      // 处理剩余的buffer
-      if (buffer) {
-        setGeneratedContent(prev => prev + buffer);
-      }
-
+      );
     } catch (error: any) {
       console.error('AI 处理出错:', error);
       alert(error.message || 'AI 处理出错，请稍后重试');
@@ -576,29 +453,6 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
       setIsLoading(false);
       onLoadingChange(false);
     }
-  };
-
-  // 处理格式化选择
-  const handleFormatSelect = (format: string) => {
-    setFormatType(format);
-    setMode('format');
-    
-    // 如果有选中内容，直接提交
-    if (selectionRef.current && selectionRef.current.from !== selectionRef.current.to) {
-      setTimeout(() => {
-        handleSubmit();
-      }, 100);
-    }
-  };
-
-  const handleDragStart = (e: React.MouseEvent) => {
-    e.preventDefault();
-    dragRef.current = {
-      isDragging: true,
-      startX: e.clientX,
-      startY: e.clientY
-    };
-    document.body.style.cursor = 'move';
   };
 
   if (!isVisible) return null;
@@ -611,191 +465,71 @@ export const FloatingAIToolbar = ({ editor, onLoadingChange }: FloatingAIToolbar
         top: position.y,
         transform: 'translateY(0)',
         transition: dragRef.current.isDragging ? 'none' : 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+        position: 'fixed',
       }}
     >
       {/* 魔法闪光效果 */}
-      {sparkles.map(sparkle => (
-        <div
-          key={sparkle.id}
-          className="sparkle"
-          style={{
-            left: `${sparkle.x}%`,
-            top: `${sparkle.y}%`,
-            width: `${sparkle.size}px`,
-            height: `${sparkle.size}px`,
-            animationDelay: `${sparkle.delay}s`
-          }}
-        />
-      ))}
+      <AISparkleEffect sparkles={sparkles} />
       
       <div className="ai-toolbar-content ai-toolbar-glass w-[500px] overflow-hidden flex flex-col rounded-2xl shadow-lg">
-        <div 
-          className="ai-drag-handle flex items-center justify-between px-4 py-2.5"
-          onMouseDown={handleDragStart}
-        >
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-gray-500" />
-            <span className="text-sm font-medium text-gray-600 select-none">AI 助手</span>
-          </div>
-          <button
-            onClick={handleCancel}
-            className="p-1 text-gray-400 hover:text-gray-600 rounded-md transition-colors"
-            aria-label="关闭"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+        {/* 工具栏头部 */}
+        <AIToolbarHeader 
+          onDragStart={handleDragStart} 
+          onCancel={handleCancel} 
+        />
 
         <div className="p-4">
-          {selectionRef.current && selectionRef.current.from !== selectionRef.current.to && (
-            <div className="mb-3 px-3 py-2 bg-gray-50/30 rounded-lg border border-gray-100/50 text-xs text-gray-600 max-h-[100px] overflow-y-auto">
-              <div className="flex items-start gap-2">
-                <div className="flex-shrink-0 mt-0.5">
-                  <div className="w-1 h-[calc(100%-2px)] bg-gray-300/50 rounded-full"></div>
-                </div>
-                <div className="flex-1 line-clamp-4 whitespace-pre-wrap">
-                  {editor.state.doc.textBetween(selectionRef.current.from, selectionRef.current.to, '\n')}
-                </div>
-              </div>
-            </div>
+          {/* 选中的文本显示 */}
+          {mode !== 'image' && (
+            <AISelectedText 
+              editor={editor} 
+              selectionRef={selectionRef} 
+            />
           )}
-          <div className="ai-input-wrapper flex gap-2">
-            <div className="relative flex-1">
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                <Wand2 className="w-4 h-4" />
-              </div>
-              <input
-                ref={inputRef}
-                type="text"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder={selectionRef.current && selectionRef.current.from !== selectionRef.current.to
-                  ? "翻译/总结/改写..."
-                  : "写一段/续写..."
-                }
-                className="magic-input flex-1 pl-10 pr-3 py-3 text-sm rounded-xl w-full focus:outline-none placeholder:text-gray-300"
-                disabled={isLoading || mode === 'format'}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSubmit();
-                  }
-                }}
-              />
-            </div>
-            
-            {/* 格式化下拉菜单 */}
-            <DropdownMenu.Root>
-              <DropdownMenu.Trigger asChild>
-                <button
-                  className="format-btn p-3 text-gray-600 hover:text-gray-800 transition-all duration-300 rounded-xl border border-gray-200/50 bg-white/50 hover:bg-white/80"
-                  aria-label="格式化选项"
-                >
-                  <Type className="w-4 h-4" />
-                </button>
-              </DropdownMenu.Trigger>
-              <DropdownMenu.Portal>
-                <DropdownMenu.Content
-                  className="ai-toolbar-glass rounded-lg shadow-lg p-2 w-48 z-50"
-                  sideOffset={5}
-                  align="end"
-                >
-                  <DropdownMenu.Label className="px-2 py-1.5 text-xs font-medium text-gray-500">
-                    Markdown 格式化
-                  </DropdownMenu.Label>
-                  <DropdownMenu.Separator className="h-px bg-gray-100 my-1" />
-                  {formatOptions.map((option) => (
-                    <DropdownMenu.Item
-                      key={option.value}
-                      className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100/50 rounded cursor-pointer"
-                      onClick={() => handleFormatSelect(option.value)}
-                    >
-                      <span className="w-6 h-6 flex items-center justify-center text-xs font-medium bg-gray-100 rounded">
-                        {option.icon}
-                      </span>
-                      {option.label}
-                    </DropdownMenu.Item>
-                  ))}
-                </DropdownMenu.Content>
-              </DropdownMenu.Portal>
-            </DropdownMenu.Root>
-            
-            <button
-              onClick={handleSubmit}
-              disabled={isLoading}
-              className="magic-btn p-3 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 min-w-[46px] flex items-center justify-center"
-              aria-label="发送"
-            >
-              {isLoading ? (
-                <div className="ai-loading-indicator">
-                  <div></div>
-                  <div></div>
-                  <div></div>
-                </div>
-              ) : (
-                <Send className="w-4 h-4" />
-              )}
-            </button>
-          </div>
 
-          <div className="mt-2 flex items-center justify-between text-[11px]">
-            <div className="text-gray-500 flex items-center gap-1.5">
-              {mode === 'format' ? (
-                <>格式化为: <span className="font-medium">{formatOptions.find(o => o.value === formatType)?.label || formatType}</span></>
-              ) : selectionRef.current && selectionRef.current.from !== selectionRef.current.to ? (
-                "处理选中的文本"
-              ) : (
-                "在此处生成内容"
-              )}
-            </div>
-            <div className="flex items-center gap-1 text-gray-500">
-              <kbd className="px-1.5 py-0.5 text-[10px] font-medium bg-gray-50/70 rounded border border-gray-200/70">Alt</kbd>
-              <span>+</span>
-              <kbd className="px-1.5 py-0.5 text-[10px] font-medium bg-gray-50/70 rounded border border-gray-200/70">/</kbd>
-            </div>
-          </div>
+          {/* 输入区域 */}
+          <AIToolbarInput 
+            prompt={prompt}
+            setPrompt={setPrompt}
+            mode={mode}
+            isLoading={isLoading}
+            formatType={formatType}
+            selectionRef={selectionRef}
+            inputRef={inputRef}
+            onSubmit={handleSubmit}
+            onFormatSelect={handleFormatSelect}
+            onModeChange={handleModeChange}
+            editor={editor}
+          />
+
+          {/* 底部信息 */}
+          <AIToolbarFooter 
+            mode={mode} 
+            formatType={formatType} 
+            selectionRef={selectionRef} 
+          />
         </div>
 
-        {generatedContent && (
-          <>
-            <div className="ai-generated-content flex-1 max-h-[400px] px-4 py-3 overflow-y-auto">
-              <div 
-                className="text-sm text-gray-700 leading-relaxed markdown-content"
-                dangerouslySetInnerHTML={{ 
-                  __html: md.render(generatedContent) + (isLoading ? '<span class="typing-effect">&nbsp;</span>' : '') 
-                }}
-              />
-            </div>
-            <div className="flex justify-end gap-2 p-3 border-t border-gray-100/30">
-              <button
-                onClick={handleCancel}
-                className="simple-btn flex items-center gap-1 px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors"
-                aria-label="取消"
-              >
-                <X className="w-3.5 h-3.5" />
-                取消
-              </button>
-              <button
-                onClick={handleRegenerate}
-                className="simple-btn flex items-center gap-1 px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors"
-                aria-label="重新生成"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                重新生成
-              </button>
-              <button
-                onClick={handleInsertContent}
-                disabled={isLoading}
-                className={`magic-btn flex items-center gap-1 px-4 py-1.5 text-xs font-medium text-white hover:bg-gray-900 rounded-lg transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                aria-label="插入"
-              >
-                <Check className="w-3.5 h-3.5" />
-                插入
-              </button>
-            </div>
-          </>
+        {/* 生成的内容 */}
+        {mode === 'image' ? (
+          <AIGeneratedImage 
+            imageUrl={generatedImageUrl}
+            dimensions={imageDimensions}
+            isLoading={isLoading}
+            onCancel={handleCancel}
+            onRegenerate={handleRegenerate}
+            onInsert={handleInsertContent}
+          />
+        ) : (
+          <AIGeneratedContent 
+            generatedContent={generatedContent}
+            isLoading={isLoading}
+            onCancel={handleCancel}
+            onRegenerate={handleRegenerate}
+            onInsert={handleInsertContent}
+          />
         )}
       </div>
     </div>
   );
-}; 
+};
